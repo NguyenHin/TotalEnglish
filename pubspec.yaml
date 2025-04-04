@@ -35,7 +35,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_launcher_icons: ^0.13.1 #cài đặt package đổi icon
-
+  font_awesome_flutter: ^10.7.0 # Thêm dependency FontAwesome
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -61,6 +62,14 @@ flutter:
   assets:
     - assets/icon/app_icon.png
 
+
+  fonts:
+    - family: Kavoon
+      fonts:
+        - asset: assets/fonts/Kavoon-Regular.ttf
+    - family: Kadwa  # Thêm Kadwa vào đây
+      fonts:
+        - asset: assets/fonts/Kadwa-Bold.ttf
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -95,3 +104,6 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/app_icon.png"
+
+
+

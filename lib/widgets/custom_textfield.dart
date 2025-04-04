@@ -11,6 +11,7 @@ class CustomTextField extends StatefulWidget{
   final IconData icon;
   final bool isPassword;
   final TextEditingController controller;
+  final FocusNode? focusNode;
 
   const CustomTextField({
     super.key,  //không cần viết Key? key và gán super.key
@@ -18,6 +19,7 @@ class CustomTextField extends StatefulWidget{
     required this.icon,
     this.isPassword = false,
     required this.controller,
+    this.focusNode,
   });
   
   @override
@@ -30,50 +32,52 @@ class _CustomTextFieldState extends State<CustomTextField>{
   bool _isFocused = false;
   @override
   Widget build(BuildContext context) {
-    return FocusScope(
-      child: Focus(
-        onFocusChange: (hasFocus){
-          setState(() {
-            _isFocused = hasFocus;
-          });
-        },
-      
-      child: TextField(
-        controller: widget.controller,
-        obscureText: widget.isPassword ? _isObscure : false,
-        decoration: InputDecoration(
-          hintText: _isFocused ? "" : widget.hintText, // Ẩn khi bấm vào
-          prefixIcon: Icon(widget.icon, color: Colors.black54),
-          suffixIcon: widget.isPassword
-            ? IconButton(
-                icon: Icon(
-                  _isObscure ? Icons.visibility_off : Icons.visibility, 
-                  color: Colors.black54), 
-                onPressed: (){
-                  setState(() {
-                    _isObscure = !_isObscure;
-                  });
-                },
-              )
-              : (widget.controller.text.isNotEmpty 
-                  ? IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.black54), 
-                      onPressed: (){
-                        widget.controller.clear();
-                        setState(() {});
-                      },
-                    )
-                  : null), 
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.black12),
+    return Focus(
+      onFocusChange: (hasFocus) {
+        setState(() {
+          _isFocused = hasFocus;
+        });
+      },
+      child: SizedBox(
+        width: 355,
+        height: 42,
+        child: TextField(
+          controller: widget.controller,
+          obscureText: widget.isPassword ? _isObscure : false,
+          decoration: InputDecoration(
+            hintText: _isFocused ? "" : widget.hintText, // Ẩn khi bấm vào
+            prefixIcon: Icon(widget.icon, color: Colors.black54),
+            suffixIcon: widget.isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _isObscure ? Icons.visibility_off : Icons.visibility, 
+                    color: Colors.black54), 
+                  onPressed: (){
+                    setState(() {
+                      _isObscure = !_isObscure;
+                    });
+                  },
+                )
+                : (widget.controller.text.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.cancel, color: Colors.black54), 
+                        onPressed: (){
+                          widget.controller.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null), 
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.black12),
+            ),
+            filled: true,
+            fillColor: Colors.grey[200],
+            contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0), // Adjust padding to center text
           ),
-          filled: true,
-          fillColor: Colors.grey[200],
+          onChanged: (text) => setState(() {}), // Cập nhật UI khi nhập
         ),
-        onChanged: (text) => setState(() {}), // Cập nhật UI khi nhập
       ),
-    ),
     );
         
   }
