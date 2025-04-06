@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:total_english/screens/forgot_password.dart';
 import 'package:total_english/screens/signup_screen.dart';
 import 'package:total_english/widgets/custom_button.dart';
 import 'package:total_english/widgets/custom_textfield.dart';
@@ -80,12 +81,15 @@ class _LoginScreenState extends State<LoginScreen>{
   }
 
   Widget _buildLoginForm() {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+
   return Stack(
     children: [
-      //choose languge
+      // Language switcher
       Positioned(
-        left: 235,
-        top: 59,
+        left: screenWidth * 0.6,
+        top: screenHeight * 0.07,
         child: LanguageSwitcher(
           onLanguageChanged: (String newLanguage) {
             debugPrint('Ngôn ngữ đã đổi sang: $newLanguage');
@@ -93,43 +97,46 @@ class _LoginScreenState extends State<LoginScreen>{
         ),
       ),
 
-      //email
+      // Email field
       Positioned(
-        left: 27,
-        top: 400,
+        left: screenWidth * 0.07,
+        top: screenHeight * 0.49,
         child: SizedBox(
-          width: 355,
+          width: screenWidth * 0.87,
           child: CustomTextField(
-            hintText: 'Username or Email', 
-            icon: Icons.email, 
-            controller: emailController
+            hintText: 'Username or Email',
+            icon: Icons.email,
+            controller: emailController,
           ),
         ),
       ),
 
-      //password
+      // Password field
       Positioned(
-        left: 27,
-        top: 455,
+        left: screenWidth * 0.07,
+        top: screenHeight * 0.555,
         child: SizedBox(
-          width: 355,
+          width: screenWidth * 0.87,
           child: CustomTextField(
-            hintText: 'Password', 
-            icon: Icons.lock, 
+            hintText: 'Password',
+            icon: Icons.lock,
             controller: passwordController,
             isPassword: true,
           ),
         ),
       ),
 
-      //forgetpassword
+      // Forgot password
       Positioned(
-        left: 266,
-        top: 495,
+        left: screenWidth * 0.65,
+        top: screenHeight * 0.605,
         child: TextButton(
           onPressed: () {
-            //chuyển đến ForgetPassScreen
-          }, 
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (context) => const ForgotPassword()),
+            );
+          },
           child: const Text(
             'Forgot Password?',
             style: TextStyle(
@@ -141,25 +148,77 @@ class _LoginScreenState extends State<LoginScreen>{
         ),
       ),
 
-      //login button
+      // Login button
       Positioned(
-        left: 27,
-        top: 545,
+        left: screenWidth * 0.07,
+        top: screenHeight * 0.66,
         child: SizedBox(
-          width: 355,
+          width: screenWidth * 0.87,
           child: CustomButton(
-            text: 'Login', 
+            text: 'Login',
             onPressed: () {
-              //xu ly dang nhap
+              // xử lý đăng nhập
             },
           ),
         ),
       ),
-      
-      //SignUp
+
+
+          // ---- OR ---- line
       Positioned(
-        left: 95,
-        top: 700,
+        top: MediaQuery.of(context).size.height * 0.72,
+        left: MediaQuery.of(context).size.width * 0.13,
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.74,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: Colors.black54,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'Or',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black54,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      // Social login buttons
+      Positioned(
+        top: MediaQuery.of(context).size.height * 0.75,
+        left: MediaQuery.of(context).size.width * 0.33,
+        child: SocialLoginButtons(
+          onGoogleTap: () {
+            print("Google login tapped");
+          },
+          onFacebookTap: () {
+            print("Facebook login tapped");
+          },
+        ),
+      ),
+
+      // Sign up text
+      Positioned(
+        top: screenHeight * 0.82,
+        left: screenWidth * 0.2,
         child: Row(
           children: [
             const Text(
@@ -169,12 +228,9 @@ class _LoginScreenState extends State<LoginScreen>{
             const SizedBox(width: 5),
             TextButton(
               onPressed: () {
-                //chuyển đến SignUpScreen
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => SignupScreen()
-                  ),
+                  MaterialPageRoute(builder: (context) => const SignupScreen()),
                 );
               },
               child: const Text(
@@ -189,57 +245,10 @@ class _LoginScreenState extends State<LoginScreen>{
         ),
       ),
 
-      //---- Or ----
-      Positioned(
-        left: 67,
-        top: 600,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 125,
-              height: 1,
-              color: Colors.black54,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                'Or',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black54,
-                ),
-              ),
-            ),
-            Container(
-              width: 125,
-              height: 1,
-              color: Colors.black54,
-            )
-          ],
-        )
-      ),
-
-      //fb, gg button
-      Positioned(
-        left: 138,
-        top: 640,
-        child: SocialLoginButtons(
-          onGoogleTap: () {
-            // Xử lý khi người dùng nhấn vào nút Google
-            print("Google login tapped");
-          },
-          onFacebookTap: () {
-            // Xử lý khi người dùng nhấn vào nút Facebook
-            print("Facebook login tapped");
-          },
-        ),
-      )
-
     ],
   );
 }
+
  
   Widget _buildLogo() {
   return Positioned(
