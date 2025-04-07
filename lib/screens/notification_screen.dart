@@ -39,68 +39,62 @@ class NotificationScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch toàn bộ chiều rộng
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Thay đổi thành stretch để các container thông báo có thể căn giữa
           children: [
             const SizedBox(height: 20.0),
             // Thông báo 1
-            Align(
-              alignment: Alignment.centerRight, // Căn thông báo qua bên phải
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10.0),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4.0,
-                      offset: Offset(0, 2),
+            Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4.0,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.local_fire_department_outlined, color: Colors.orange),
+                  SizedBox(width: 10.0),
+                  Expanded(
+                    child: Text(
+                      'Bạn sắp để mất chuỗi 2 ngày streak.',
+                      style: TextStyle(fontSize: 16.0),
                     ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.local_fire_department_outlined, color: Colors.orange),
-                    SizedBox(width: 10.0),
-                    Expanded(
-                      child: Text(
-                        'Bạn sắp để mất chuỗi 2 ngày streak.',
-                        style: TextStyle(fontSize: 16.0),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16.0),
             // Thông báo 2
-            Align(
-              alignment: Alignment.centerRight, // Căn thông báo qua bên phải
-              child: Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8.0),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4.0,
-                      offset: Offset(0, 2),
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4.0,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(FontAwesomeIcons.fire, color: Color(0xFFD36EE5)),
+                  SizedBox(width: 10.0),
+                  Expanded(
+                    child: Text(
+                      "Bạn đang có chuỗi 4 ngày học tập!",
+                      style: TextStyle(fontSize: 16.0),
                     ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(FontAwesomeIcons.fire, color: Color(0xFFD36EE5)),
-                    SizedBox(width: 10.0),
-                    Expanded(
-                      child: Text(
-                        "Bạn đang có chuỗi 4 ngày học tập!",
-                        style: TextStyle(fontSize: 16.0),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16.0),
