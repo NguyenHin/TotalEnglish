@@ -64,7 +64,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: Column(
                 children: [
-                  const SizedBox(height: 70),
+                  const SizedBox(height: 55),
 
                   // Header for the lesson
                   const HeaderLesson(

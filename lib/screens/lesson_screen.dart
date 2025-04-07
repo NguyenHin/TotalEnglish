@@ -9,6 +9,7 @@ class LessonScreen extends StatefulWidget {
 }
 
 class _LessonScreenState extends State<LessonScreen> {
+  // ignore: unused_field
   int _currentIndex = 0;
   int selectedLesson = -1;
 
