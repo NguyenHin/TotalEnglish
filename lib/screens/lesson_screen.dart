@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:total_english/widgets/custom_bottom_nav.dart';
 
 class LessonScreen extends StatefulWidget {
   const LessonScreen({super.key});
@@ -259,14 +258,6 @@ class _LessonScreenState extends State<LessonScreen> {
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
       ),
     );
   }
