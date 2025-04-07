@@ -62,6 +62,8 @@ flutter:
   assets:
     - assets/icon/app_icon.png
 
+    - assets/icon/bye.png
+
 
   fonts:
     - family: Kavoon
