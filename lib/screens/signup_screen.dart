@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:total_english/widgets/acc_textfield.dart';
 import 'package:total_english/widgets/custom_button.dart';
 import 'package:total_english/widgets/sociallogin_button.dart';
