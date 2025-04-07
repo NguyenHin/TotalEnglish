@@ -21,8 +21,8 @@ class MyApp extends StatelessWidget {
       //home: LoginScreen(),
       //home: MainScreen(),
       //home: SignupScreen(),
-      //home: const HomeScreen()
-      home: SettingsScreen()
+      home: const HomeScreen()
+      //home: SettingsScreen()
     );
   }
 }
