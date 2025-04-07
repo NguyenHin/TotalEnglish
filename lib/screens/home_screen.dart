@@ -1,30 +1,8 @@
 import 'package:flutter/material.dart';
 import 'lesson_screen.dart';
 import 'streak_screen.dart';
+import 'notification_screen.dart';
 import 'package:total_english/widgets/custom_bottom_nav.dart';
-
-// 👉 Tạo thêm 2 màn hình rỗng tạm thời
-class NotificationScreen extends StatelessWidget {
-  const NotificationScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Thông báo'),
-    );
-  }
-}
-
-class AccountScreen extends StatelessWidget {
-  const AccountScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Tài khoản'),
-    );
-  }
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
     LessonScreen(),
     StreakScreen(),
     NotificationScreen(),
-    AccountScreen(),
+
   ];
 
   void _onTabTapped(int index) {
