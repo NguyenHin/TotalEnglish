@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-
 class StreakScreen extends StatelessWidget {
   const StreakScreen({super.key});
 
@@ -11,20 +10,14 @@ class StreakScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header với nút back
+            // Header không có nút back
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                  ),
+                children: const [
+                  // Đây là nơi bạn đã xóa GestureDetector và Icon
+                  // Nên xóa phần này để không còn nút quay lại
                 ],
               ),
             ),
