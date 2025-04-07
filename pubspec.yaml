@@ -37,6 +37,7 @@ dependencies:
   flutter_launcher_icons: ^0.13.1 #cài đặt package đổi icon
   font_awesome_flutter: ^10.7.0 # Thêm dependency FontAwesome
   
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,7 +63,7 @@ flutter:
   assets:
     - assets/icon/app_icon.png
     - assets/icon/panda_icon.png
-
+    - assets/icon/no_background.png
     - assets/icon/bye.png
 
 

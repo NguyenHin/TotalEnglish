@@ -33,15 +33,13 @@ class _ListeningScreenState extends State<ListeningScreen> {
         onTap: () {
           FocusScope.of(context).unfocus();
         },
-        child: SingleChildScrollView(
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height,
-            child: Stack(
-              children: [
-                _buildBackButton(context),
-                _buildListeningForm(context),
-              ],
-            ),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height,
+          child: Stack(
+            children: [
+              _buildBackButton(context),
+              _buildListeningForm(context),
+            ],
           ),
         ),
       ),
@@ -62,138 +60,149 @@ class _ListeningScreenState extends State<ListeningScreen> {
   }
 
   Widget _buildListeningForm(BuildContext context) {
-    return Positioned(
-      top: 120,
-      left: 22,
-      right: 22,
-      child: Column(
-        children: [
-          const HeaderLesson(
-            title: 'Listening',
-            color: Color(0xFF89B3D4),
-          ),
-          const SizedBox(height: 30),
+  return Positioned(
+    top: 100,
+    left: 22,
+    right: 22,
+    child: Column(
+      children: [
+        const HeaderLesson(
+          title: 'Listening',
+          color: Color(0xFF89B3D4),
+        ),
+        const SizedBox(height: 20),
 
-          // Hiển thị kết quả: đúng hay sai
-          if (_vocabulary != null && _vocabulary!.isNotEmpty)
-            Text(
-              _vocabulary!,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: _vocabulary == 'Không đúng, thử lại.'
-                    ? Colors.red
-                    : Colors.green,
-              ),
-            ),
-
-          const SizedBox(height: 30),
-
-          // PageView để chuyển từ
-          SizedBox(
-            height: 350,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _words.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPage = index;
-                  _controller.clear();
-                  _vocabulary = '';
-                });
-              },
-              itemBuilder: (context, index) {
-                return Column(
-                  children: [
-                    PlayButton(
-                      onPressed: () {
-                        // future: phát âm thanh _words[index]['word']
-                      },
-                      label: "Click to hear the word",
-                    ),
-                    const SizedBox(height: 30),
-
-                    Container(
-                      width: 265,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F9FD),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        textAlign: TextAlign.center,
-                        textAlignVertical: TextAlignVertical.center,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w300,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Nhập từ vào đây',
-                          hintStyle: TextStyle(
-                            color: Colors.grey[600],
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 30,
-                          ),
-                        ),
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        keyboardType: TextInputType.text,
-                        textCapitalization: TextCapitalization.none,
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    ElevatedButton(
-                      onPressed: _checkAnswer,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF89B3D4),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "Check Answer",
-                        style: TextStyle(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+        // Hiển thị kết quả: đúng hay sai
+        Container(
+          height: 40, // Đặt cố định chiều cao để tránh bị đẩy layout
+          alignment: Alignment.center,
+          child: Text(
+            _vocabulary ?? '',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: _vocabulary == 'Không đúng, thử lại.'
+                  ? Colors.red
+                  : Colors.green,
             ),
           ),
+        ),
 
-          const SizedBox(height: 20),
+        const SizedBox(height: 30),
 
-          // Dot indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_words.length, (index) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _currentPage == index
-                      ? Colors.blue
-                      : Colors.grey.shade400,
-                ),
+        // PageView để chuyển từ
+        SizedBox(
+          height: 350,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _words.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+                _controller.clear();
+                _vocabulary = '';
+              });
+            },
+            itemBuilder: (context, index) {
+              return Column(
+                children: [
+                  PlayButton(
+                    onPressed: () {
+                      // future: phát âm thanh _words[index]['word']
+                    },
+                    label: "Bấm vào đây để nghe",
+                  ),
+                  const SizedBox(height: 30),
+
+                  Container(
+                    width: 265,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F9FD),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      textAlign: TextAlign.center,
+                      textAlignVertical: TextAlignVertical.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Nhập từ vào đây',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[600],
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 30,
+                        ),
+                      ),
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.none,
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  ElevatedButton(
+                    onPressed: _checkAnswer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF89B3D4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Kiểm tra",
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               );
-            }),
+            },
           ),
-        ],
-      ),
-    );
-  }
+        ),
+
+        // Dot indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_words.length, (index) {
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentPage == index
+                    ? Colors.blue
+                    : Colors.grey.shade400,
+              ),
+            );
+          }),
+        ),
+
+        // Đặt hình ảnh sau Dot Indicator
+        const SizedBox(height: 15), // Thêm khoảng cách trước hình ảnh
+        Image.asset(
+          'assets/icon/no_background.png',
+          width: 200,
+          height: 200,
+        ),
+      ],
+    ),
+  );
+}
+
 
   void _checkAnswer() {
     String correctWord = _words[_currentPage]['word']!.toLowerCase();
