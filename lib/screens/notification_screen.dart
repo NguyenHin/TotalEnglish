@@ -9,24 +9,14 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Center(
-          child: Column(
-            children: [
-              Text(
-                'Thông báo',
-                style: TextStyle(
-                  fontFamily: 'KohSantepheap',
-                  fontSize: 20.0,
-                ),
-              ),
-              SizedBox(height: 4.0),
-              Divider(
-                color: Colors.grey,
-                thickness: 0.5,
-              ),
-            ],
+        title: const Text(
+          'Thông báo',
+          style: TextStyle(
+            fontFamily: 'KohSantepheap',
+            fontSize: 20.0,
           ),
         ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -35,76 +25,83 @@ class NotificationScreen extends StatelessWidget {
             },
           ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(
+            color: Colors.grey,
+            thickness: 0.5,
+            height: 0,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch toàn bộ chiều rộng
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 20.0),
+
             // Thông báo 1
-            Align(
-              alignment: Alignment.centerRight, // Căn thông báo qua bên phải
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10.0),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4.0,
-                      offset: Offset(0, 2),
+            Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4.0,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.local_fire_department_outlined, color: Colors.orange),
+                  SizedBox(width: 10.0),
+                  Expanded(
+                    child: Text(
+                      'Bạn sắp để mất chuỗi 2 ngày streak.',
+                      style: TextStyle(fontSize: 16.0),
                     ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.local_fire_department_outlined, color: Colors.orange),
-                    SizedBox(width: 10.0),
-                    Expanded(
-                      child: Text(
-                        'Bạn sắp để mất chuỗi 2 ngày streak.',
-                        style: TextStyle(fontSize: 16.0),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+
             const SizedBox(height: 16.0),
+
             // Thông báo 2
-            Align(
-              alignment: Alignment.centerRight, // Căn thông báo qua bên phải
-              child: Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8.0),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4.0,
-                      offset: Offset(0, 2),
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4.0,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(FontAwesomeIcons.fire, color: Color(0xFFD36EE5)),
+                  SizedBox(width: 10.0),
+                  Expanded(
+                    child: Text(
+                      "Bạn đang có chuỗi 4 ngày học tập!",
+                      style: TextStyle(fontSize: 16.0),
                     ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(FontAwesomeIcons.fire, color: Color(0xFFD36EE5)),
-                    SizedBox(width: 10.0),
-                    Expanded(
-                      child: Text(
-                        "Bạn đang có chuỗi 4 ngày học tập!",
-                        style: TextStyle(fontSize: 16.0),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+
             const SizedBox(height: 16.0),
-            // Nếu không có thông báo
+
+            // Nếu không có thông báo nào khác
             const Expanded(
               child: Center(
                 child: Text(
