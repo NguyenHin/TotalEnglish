@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'lesson_screen.dart';
 import 'streak_screen.dart';
 import 'notification_screen.dart';
+import 'Account_screen.dart';  // Import màn hình tài khoản
 import 'package:total_english/widgets/custom_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
     LessonScreen(),
     StreakScreen(),
     NotificationScreen(),
-
+    AccountScreen(),  // Thêm màn hình tài khoản vào danh sách
   ];
 
   void _onTabTapped(int index) {
