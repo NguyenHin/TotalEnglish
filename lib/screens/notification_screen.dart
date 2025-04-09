@@ -9,14 +9,26 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text(
-          'Thông báo',
-          style: TextStyle(
-            fontFamily: 'KohSantepheap',
-            fontSize: 20.0,
+
+        title: const Center(
+          child: Column(
+            children: [
+              Text(
+                'Thông báo',
+                style: TextStyle(
+                  fontFamily: 'KohSantepheap',
+                  fontSize: 20.0,
+                ),
+              ),
+              SizedBox(height: 4.0),
+              Divider(
+                color: Colors.grey,
+                thickness: 0.5,
+              ),
+            ],
           ),
         ),
-        centerTitle: true,
+
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -25,19 +37,13 @@ class NotificationScreen extends StatelessWidget {
             },
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(
-            color: Colors.grey,
-            thickness: 0.5,
-            height: 0,
-          ),
-        ),
+
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Thay đổi thành stretch để các container thông báo có thể căn giữa
           children: [
             const SizedBox(height: 20.0),
 
@@ -100,8 +106,8 @@ class NotificationScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 16.0),
+            // Nếu không có thông báo
 
-            // Nếu không có thông báo nào khác
             const Expanded(
               child: Center(
                 child: Text(
@@ -116,3 +122,4 @@ class NotificationScreen extends StatelessWidget {
     );
   }
 }
+
