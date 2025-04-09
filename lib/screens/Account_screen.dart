@@ -3,6 +3,7 @@ import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
 import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
+import 'package:total_english/screens/main_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -177,7 +178,47 @@ class _AccountScreenState extends State<AccountScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: const Text(
+                          "Bạn có chắc chắn muốn đăng xuất khỏi TotalEnglish không?",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Đóng dialog
+                            },
+                            child: const Text("Hủy"),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[300],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Đóng dialog
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => const MainScreen()),
+                              );
+                            },
+                            child: const Text("Đăng xuất"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[200],
                   padding: const EdgeInsets.symmetric(vertical: 16),
