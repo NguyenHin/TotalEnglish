@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-
-
-
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/main_screen.dart';
 import 'package:total_english/screens/lesson_screen.dart';
@@ -23,21 +20,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-
-
-
-
       //home: LoginScreen(),
       //home: MainScreen(),
       //home: SignupScreen(),
+      home: const HomeScreen()
 
-      //home: LoginScreen(),
-      //home: MainScreen(),
-      //home: SignupScreen(),
-      home: const HomeScreen(),
-      //home: const AboutScreen(),
-      //home: const SettingsScreen(),
-      //home: const AccountScreen(),
     );
   }
 }
