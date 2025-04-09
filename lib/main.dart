@@ -4,6 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:total_english/screens/lesson_screen.dart';
 import 'package:total_english/screens/login_screen.dart';
+import 'package:total_english/screens/streak_screen.dart';
+import 'package:total_english/screens/home_screen.dart';
+import 'package:total_english/screens/Account_screen.dart';
+import 'package:total_english/screens/About_screen.dart';
+
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +51,7 @@ class MyApp extends StatelessWidget {
           }
         },
       ),
+
     );
   }
 }
