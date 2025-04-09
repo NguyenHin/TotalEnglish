@@ -63,8 +63,10 @@ flutter:
   assets:
     - assets/icon/app_icon.png
     - assets/icon/panda_icon.png
+
     - assets/icon/no_background.png
     - assets/icon/bye.png
+
 
 
   fonts:
