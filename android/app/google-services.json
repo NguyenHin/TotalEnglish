@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "962840454945",
+    "project_id": "totalenglish-63cef",
+    "storage_bucket": "totalenglish-63cef.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962840454945:android:a40994d1a7d7bf00e1c060",
+        "android_client_info": {
+          "package_name": "com.example.total_english"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzGhvKYCBauXuj9kh5uQgu2aqJmHqCBpg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
