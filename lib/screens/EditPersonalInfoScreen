@@ -1,0 +1,80 @@
+class EditPersonalInfoScreen extends StatefulWidget {
+  final Map<String, String> user;
+
+  const EditPersonalInfoScreen({super.key, required this.user});
+
+  @override
+  State<EditPersonalInfoScreen> createState() => _EditPersonalInfoScreenState();
+}
+
+class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
+  late TextEditingController nameController;
+  late TextEditingController emailController;
+  late TextEditingController birthdateController;
+  late TextEditingController phoneController;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.user['name']);
+    emailController = TextEditingController(text: widget.user['email']);
+    birthdateController = TextEditingController(text: widget.user['birthdate']);
+    phoneController = TextEditingController(text: widget.user['phone']);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    birthdateController.dispose();
+    phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Chỉnh sửa thông tin"),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            _buildTextField("Họ và tên", nameController),
+            _buildTextField("Email", emailController),
+            _buildTextField("Ngày sinh", birthdateController),
+            _buildTextField("Số điện thoại", phoneController),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {
+                final updatedUser = {
+                  'name': nameController.text,
+                  'email': emailController.text,
+                  'birthdate': birthdateController.text,
+                  'phone': phoneController.text,
+                };
+                Navigator.pop(context, updatedUser); // Trả lại dữ liệu sau khi chỉnh
+              },
+              child: const Text("Lưu thay đổi"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+}

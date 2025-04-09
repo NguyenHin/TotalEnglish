@@ -37,6 +37,7 @@ class StreakScreen extends StatelessWidget {
                         fontSize: 25,
                       ),
                     ),
+
                     const SizedBox(width: 1),
                     const Icon(
                       Icons.star,
@@ -51,6 +52,7 @@ class StreakScreen extends StatelessWidget {
             const Spacer(),
 
             // Biểu tượng lửa và streak với viền nhiều màu
+
             Stack(
               alignment: Alignment.center,
               children: [
@@ -106,11 +108,14 @@ class StreakScreen extends StatelessWidget {
             const SizedBox(height: 40),
 
             // Gấu + thông báo streak
+
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Padding(
+
                   padding: const EdgeInsets.only(left: 30.0),
+
                   child: Image.asset(
                     'assets/icon/panda_icon.png',
                     width: 150,
@@ -149,6 +154,7 @@ class StreakScreen extends StatelessWidget {
             ),
 
             const Spacer(flex: 1),
+
             const SizedBox(height: 20),
           ],
         ),
@@ -158,6 +164,7 @@ class StreakScreen extends StatelessWidget {
 }
 
 // Widget nút ngày (vòng tròn)
+
 class DayCircle extends StatelessWidget {
   final String label;
   final bool filled;
@@ -175,7 +182,9 @@ class DayCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+
       margin: const EdgeInsets.symmetric(horizontal: 2),
+
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -199,7 +208,9 @@ class DayCircle extends StatelessWidget {
   }
 }
 
+
 // Widget vòng tròn có viền nhiều màu
+
 class MultiColorBorderCircle extends StatelessWidget {
   final double size;
   final List<Color> colors;
@@ -226,6 +237,7 @@ class MultiColorBorderCircle extends StatelessWidget {
           border: Border.all(
             width: 12,
             color: Colors.white,
+
           ),
         ),
       ),
