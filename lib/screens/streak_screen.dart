@@ -16,19 +16,17 @@ class StreakScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: const [
-                  // Đây là nơi bạn đã xóa GestureDetector và Icon
-                  // Nên xóa phần này để không còn nút quay lại
+                  // Không cần icon quay lại
                 ],
               ),
             ),
 
-            // Thêm khoảng cách trước khi hiển thị "Great job! Keep it up!"
-            const SizedBox(height: 10), // Tăng khoảng cách
+            const SizedBox(height: 10),
 
-            // Chữ "Great job! Keep it up!" kèm biểu tượng 🌟
+            // Dòng chữ động viên + icon sao
             Padding(
-              padding: const EdgeInsets.only(bottom: 0.0), // Thêm khoảng cách dưới
-              child: Center( // Wrap Text with Center widget
+              padding: const EdgeInsets.only(bottom: 0.0),
+              child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -39,20 +37,22 @@ class StreakScreen extends StatelessWidget {
                         fontSize: 25,
                       ),
                     ),
-                    const SizedBox(width: 1), // Khoảng cách giữa văn bản và icon
+
+                    const SizedBox(width: 1),
                     const Icon(
                       Icons.star,
                       color: Colors.yellow,
-                      size: 25, // Kích thước của icon
+                      size: 25,
                     ),
                   ],
                 ),
               ),
             ),
 
-            const Spacer(), // Đẩy biểu tượng lửa và streak xuống giữa
+            const Spacer(),
 
-            // Biểu tượng lửa với streak
+            // Biểu tượng lửa và streak với viền nhiều màu
+
             Stack(
               alignment: Alignment.center,
               children: [
@@ -69,14 +69,14 @@ class StreakScreen extends StatelessWidget {
                   children: [
                     const Icon(
                       FontAwesomeIcons.fire,
-                      size: 90, // Tăng kích thước icon
+                      size: 90,
                       color: Color(0xFFD36EE5),
                     ),
                     const SizedBox(height: 10),
-                    Text(
+                    const Text(
                       '4 day streak',
                       style: TextStyle(
-                        fontSize: 24, // Tăng kích thước chữ
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF770B63),
                       ),
@@ -88,31 +88,34 @@ class StreakScreen extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            // Các ngày trong tuần (lớn hơn)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            // Các ngày trong tuần - Không bị scroll
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  DayCircle(label: 'T', filled: true, borderColor: const Color(0xFFE062D5), size: 50),
-                  DayCircle(label: 'W', filled: true, borderColor: const Color(0xFF777777), size: 50),
-                  DayCircle(label: 'T', filled: true, borderColor: const Color(0xFFE062D5), size: 50),
-                  DayCircle(label: 'F', filled: true, borderColor: const Color(0xFFE062D5), size: 50),
-                  DayCircle(label: 'S', filled: true, borderColor: const Color(0xFFE062D5), size: 50),
-                  DayCircle(label: 'S', filled: true, borderColor: const Color(0xFFE062D5), size: 50),
-                  DayCircle(label: 'M', filled: true, borderColor: const Color(0xFFE062D5), size: 50),
+                  DayCircle(label: 'T', filled: true, borderColor: const Color(0xFFE062D5), size: 40),
+                  DayCircle(label: 'W', filled: true, borderColor: const Color(0xFF777777), size: 40),
+                  DayCircle(label: 'T', filled: true, borderColor: const Color(0xFFE062D5), size: 40),
+                  DayCircle(label: 'F', filled: true, borderColor: const Color(0xFFE062D5), size: 40),
+                  DayCircle(label: 'S', filled: true, borderColor: const Color(0xFFE062D5), size: 40),
+                  DayCircle(label: 'S', filled: true, borderColor: const Color(0xFFE062D5), size: 40),
+                  DayCircle(label: 'M', filled: true, borderColor: const Color(0xFFE062D5), size: 40),
                 ],
               ),
             ),
 
             const SizedBox(height: 40),
 
-            // Gấu + thông báo (di chuyển lên trên)
+            // Gấu + thông báo streak
+
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(left: 30.0), // Adjust left padding as needed
+
+                  padding: const EdgeInsets.only(left: 30.0),
+
                   child: Image.asset(
                     'assets/icon/panda_icon.png',
                     width: 150,
@@ -160,6 +163,8 @@ class StreakScreen extends StatelessWidget {
   }
 }
 
+// Widget nút ngày (vòng tròn)
+
 class DayCircle extends StatelessWidget {
   final String label;
   final bool filled;
@@ -177,7 +182,9 @@ class DayCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 5),
+
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -200,6 +207,9 @@ class DayCircle extends StatelessWidget {
     );
   }
 }
+
+
+// Widget vòng tròn có viền nhiều màu
 
 class MultiColorBorderCircle extends StatelessWidget {
   final double size;
@@ -225,8 +235,9 @@ class MultiColorBorderCircle extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            width: 12, // Độ dày viền
-            color: Colors.white, // Màu nền của viền (không quan trọng)
+            width: 12,
+            color: Colors.white,
+
           ),
         ),
       ),
