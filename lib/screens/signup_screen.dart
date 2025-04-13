@@ -1,38 +1,97 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:total_english/services/auth_services.dart';
 import 'package:total_english/widgets/acc_textfield.dart';
 import 'package:total_english/widgets/custom_button.dart';
 import 'package:total_english/widgets/sociallogin_button.dart';
+import 'package:total_english/screens/home_screen.dart';
 
-class SignupScreen extends StatefulWidget{
+class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
   
   @override
-    // ignore: library_private_types_in_public_api
-    _SignupScreenState createState() => _SignupScreenState();
-  
-   
+  _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends  State<SignupScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
-    
+  
   @override
-    void dispose() {
-      _emailController.dispose();
-      _passwordController.dispose();
-      _confirmController.dispose();
-      super.dispose();
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signup() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmController.text.trim();
+
+    // Kiểm tra nếu email hoặc mật khẩu trống
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
+      );
+      return;
     }
+
+    // Kiểm tra nếu mật khẩu và xác nhận mật khẩu không khớp
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu và xác nhận mật khẩu không khớp')),
+      );
+      return;
+    }
+
+    try {
+      // Tạo tài khoản mới với email và mật khẩu
+      final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Kiểm tra nếu người dùng đã được đăng nhập thành công
+      if (userCredential.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tạo tài khoản thành công')),
+        );
+
+        // Chuyển hướng đến HomeScreen sau khi đăng ký thành công
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      // Xử lý lỗi khi Firebase trả về lỗi
+      if (e.code == 'email-already-in-use') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email đã được sử dụng')),
+        );
+      } else if (e.code == 'weak-password') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mật khẩu quá yếu, phải có ít nhất 6 ký tự')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${e.message}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi không xác định: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(), // Khi bấm ra ngoài, ẩn bàn phím
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
             Padding(
@@ -40,38 +99,37 @@ class _SignupScreenState extends  State<SignupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 130), // Khoảng cách từ trên
+                  const SizedBox(height: 130),
                   _buildTitle(),
                   const SizedBox(height: 50),
                   _buildSubtitle(),
                   const SizedBox(height: 25),
                   
-                  //account text field
+                  // Account text field
                   AccTextfield(
                     hintText: 'Email', 
-                    controller: _emailController
+                    controller: _emailController,
                   ),
                   const SizedBox(height: 30),
                   AccTextfield(
                     hintText: 'Password', 
-                    controller: _passwordController
+                    controller: _passwordController,
                   ),
                   const SizedBox(height: 30),
                   AccTextfield(
                     hintText: 'Confirm Password', 
-                    controller: _confirmController
+                    controller: _confirmController,
                   ),
                   const SizedBox(height: 40),
 
-                  //button
+                  // Button
                   CustomButton(
                     text: "Sign up", 
-                    onPressed: (){
-                      //...
-                    }),
+                    onPressed: _signup,
+                  ),
                   const SizedBox(height: 20),
 
-                  //----OR----
+                  // OR section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -100,17 +158,41 @@ class _SignupScreenState extends  State<SignupScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  //gg, fb button
+                  // Google, Facebook login buttons
                   SocialLoginButtons(
-                    onGoogleTap: () {}, 
-                    onFacebookTap: (){}
-                  )
-
-
+                    onGoogleTap: () async {
+                      User? user = await AuthService().signInWithGoogle();
+                      if (user != null && context.mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        );
+                      } else {
+                        // Hiện thông báo lỗi nếu cần
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đăng nhập thất bại')),
+                        );
+                      }
+                    },
+                    onFacebookTap: () async {
+                      User? user = await AuthService().signInWithFacebook();
+                      if (user != null && context.mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        );
+                      } else {
+                        // Hiện thông báo lỗi nếu cần
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đăng nhập bằng Facebook thất bại')),
+                        );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),
-            // Nút back được đặt trong Stack
+            // Back button
             _buildBackButton(context),
           ],
         ),
@@ -126,7 +208,7 @@ class _SignupScreenState extends  State<SignupScreen> {
         onPressed: () {
           Navigator.pop(context);
         }, 
-        icon: Icon(Icons.chevron_left, size: 28,)
+        icon: const Icon(Icons.chevron_left, size: 28,),
       ),
     );
   }
@@ -139,7 +221,7 @@ class _SignupScreenState extends  State<SignupScreen> {
           fontSize: 38,
           fontWeight: FontWeight.bold,
           fontFamily: 'Kadwa',
-          color: Color(0xFF116BAF)
+          color: Color(0xFF116BAF),
         ),
       ),
     );
@@ -156,5 +238,4 @@ class _SignupScreenState extends  State<SignupScreen> {
       ),
     );
   }
-
 }
