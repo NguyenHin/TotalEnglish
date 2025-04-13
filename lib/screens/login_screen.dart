@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/forgot_password.dart';
+import 'package:total_english/screens/home_screen.dart';
 import 'package:total_english/screens/lesson_screen.dart';
 import 'package:total_english/screens/signup_screen.dart';
 import 'package:total_english/services/auth_services.dart';
@@ -37,16 +38,6 @@ class _LoginScreenState extends State<LoginScreen>{
   bool isValidEmail(String email) {
   final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
   return emailRegex.hasMatch(email);
-}
-
-  Future<bool> isEmailRegistered(String email) async {
-  try {
-    final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
-    return methods.isNotEmpty;
-  } catch (e) {
-    print('Lỗi khi kiểm tra email: $e');
-    return false;
-  }
 }
 
 
@@ -183,11 +174,10 @@ class _LoginScreenState extends State<LoginScreen>{
                 );
 
                 if (credential != null && context.mounted) {
-                  // ✅ Đăng nhập thành công
                   failedLoginAttempts = 0; // reset
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const LessonScreen()),
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
                   );
                 } else {
                   throw Exception('Đăng nhập thất bại');
@@ -205,6 +195,7 @@ class _LoginScreenState extends State<LoginScreen>{
                 );
               }
             }
+
 
 
 
@@ -256,25 +247,27 @@ class _LoginScreenState extends State<LoginScreen>{
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
           onGoogleTap: () async {
+            await AuthService().signOutGoogle(); // <- Thêm dòng này
+
             User? user = await AuthService().signInWithGoogle();
             if (user != null && context.mounted) {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const LessonScreen()),
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
               );
             } else {
-              // Hiện thông báo lỗi nếu cần
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Đăng nhập thất bại')),
               );
             }
           },
+
           onFacebookTap: () async {
             User? user = await AuthService().signInWithFacebook();
             if (user != null && context.mounted) {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const LessonScreen()),
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
               );
             } else {
               // Hiện thông báo lỗi nếu cần

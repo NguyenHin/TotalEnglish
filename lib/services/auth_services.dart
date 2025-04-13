@@ -59,4 +59,13 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+
+  // Đăng xuất khỏi Google (dùng để bắt Google hiển thị lại chọn tài khoản)
+  Future<void> signOutGoogle() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn();
+    await googleSignIn.signOut();
+    print("🔁 Đã signOut Google - sẽ hiển thị lại chọn tài khoản khi đăng nhập");
+  }
+
 }
