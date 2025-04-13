@@ -17,18 +17,6 @@ class LessonMenu extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 8.0),
-          child: Text(
-            lessonTitle,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Kadwa',
-              color: Colors.black54,
-            ),
-          ),
-        ),
         _buildMenuButton(
           context,
           "Từ vựng",

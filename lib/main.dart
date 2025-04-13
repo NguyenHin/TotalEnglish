@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:total_english/screens/lesson_screen.dart';
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/streak_screen.dart';
 import 'package:total_english/screens/home_screen.dart';
 import 'package:total_english/screens/Account_screen.dart';
 import 'package:total_english/screens/About_screen.dart';
+import 'package:total_english/services/otp_service.dart'; // Import OTPService
 
-
+// Khai báo RouteObserver
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  OTPService.configOTP(); // Cấu hình OTPService khi ứng dụng khởi động
   runApp(const MyApp());
 }
 
@@ -42,16 +44,16 @@ class MyApp extends StatelessWidget {
             // Firebase đã khởi tạo xong
             User? user = FirebaseAuth.instance.currentUser;
 
-            // Nếu đã đăng nhập, chuyển đến màn hình học
             if (user != null) {
-              return const LessonScreen();
+              return const HomeScreen();
             } else {
               return const LoginScreen();
             }
           }
         },
       ),
-
+      // Thêm routeObserver vào navigatorObservers
+      navigatorObservers: [routeObserver],
     );
   }
 }

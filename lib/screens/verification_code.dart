@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:total_english/services/otp_service.dart'; // <-- thêm dòng này
 import 'package:total_english/widgets/custom_button.dart';
 
 class VerificationCode extends StatefulWidget {
@@ -12,13 +13,14 @@ class VerificationCode extends StatefulWidget {
   });
 
   @override
-  // ignore: library_private_types_in_public_api
   _VerificationCodeState createState() => _VerificationCodeState();
 }
 
 class _VerificationCodeState extends State<VerificationCode> {
-  final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final List<TextEditingController> _controllers =
+      List.generate(4, (index) => TextEditingController());
+  final List<FocusNode> _focusNodes =
+      List.generate(4, (index) => FocusNode());
 
   @override
   void dispose() {
@@ -29,6 +31,38 @@ class _VerificationCodeState extends State<VerificationCode> {
       focusNode.dispose();
     }
     super.dispose();
+  }
+
+  void _verifyOTP() async {
+    String otp = _controllers.map((e) => e.text).join();
+
+    if (otp.length < 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vui lòng nhập đầy đủ mã OTP')),
+      );
+      return;
+    }
+
+    bool isValid = await OTPService.verifyOTP(otp);
+
+    if (isValid) {
+      Navigator.pushNamed(context, '/new_password');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Mã OTP không đúng')),
+      );
+    }
+  }
+
+  void _resendCode() async {
+    bool success = await OTPService.sendOTP(widget.email);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? 'Đã gửi lại mã xác minh đến ${widget.email}'
+            : 'Gửi lại mã OTP thất bại'),
+      ),
+    );
   }
 
   @override
@@ -79,21 +113,20 @@ class _VerificationCodeState extends State<VerificationCode> {
   }
 
   Widget _buildOtpFields() {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,  // Căn giữa các ô
-    children: List.generate(4, (index) {
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10), // Giảm khoảng cách giữa các ô
-        child: OtpBox(
-          controller: _controllers[index],
-          focusNode: _focusNodes[index], // Truyền focusNode vào
-          index: index,
-        ),
-      );
-    }),
-  );
-}
-
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(4, (index) {
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: OtpBox(
+            controller: _controllers[index],
+            focusNode: _focusNodes[index],
+            index: index,
+          ),
+        );
+      }),
+    );
+  }
 
   Widget _buildVerificationForm() {
     return Positioned(
@@ -113,7 +146,6 @@ class _VerificationCodeState extends State<VerificationCode> {
             ),
           ),
           const SizedBox(height: 100),
-
           Text(
             'Verification code sent to ',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
@@ -124,25 +156,19 @@ class _VerificationCodeState extends State<VerificationCode> {
                 TextSpan(
                   text: widget.email,
                   style: TextStyle(
-                    color: Color(0xFF89B3D4), // Đặt màu xanh cho email
+                    color: Color(0xFF89B3D4),
                     fontSize: 18,
                   ),
                 ),
               ],
             ),
-            overflow: TextOverflow.visible,
-            softWrap: true,
           ),
           const SizedBox(height: 20),
-
           _buildOtpFields(),
           const SizedBox(height: 30),
-
           CustomButton(
             text: 'Confirm code',
-            onPressed: () {
-              //...
-            },
+            onPressed: _verifyOTP, // <-- gọi xác minh
           ),
           const SizedBox(height: 20),
           Row(
@@ -156,9 +182,7 @@ class _VerificationCodeState extends State<VerificationCode> {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  //...
-                },
+                onPressed: _resendCode, // <-- gọi gửi lại
                 child: Text(
                   "Resend code",
                   style: TextStyle(
@@ -207,12 +231,13 @@ class WavePainter extends CustomPainter {
 class OtpBox extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
-final int index;
+  final int index;
+
   const OtpBox({
     super.key,
     required this.controller,
-    required this.focusNode, // Truyền focusNode từ bên ngoài
-    required this.index, // 
+    required this.focusNode,
+    required this.index,
   });
 
   @override
@@ -233,27 +258,22 @@ final int index;
       ),
       child: TextField(
         controller: controller,
-        focusNode: focusNode, // Sử dụng focusNode từ bên ngoài
+        focusNode: focusNode,
         maxLength: 1,
         textAlign: TextAlign.center,
-        
         keyboardType: TextInputType.number,
-        style: const TextStyle(
-          fontSize: 20,
-        ),
+        style: const TextStyle(fontSize: 20),
         decoration: InputDecoration(
           counterText: '',
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 14), // Thêm padding để căn chỉnh theo chiều dọc
+          contentPadding: EdgeInsets.symmetric(vertical: 14),
         ),
-
         textAlignVertical: TextAlignVertical.center,
-
         onChanged: (value) {
           if (value.isNotEmpty) {
-            FocusScope.of(context).nextFocus(); // Move to next field
+            FocusScope.of(context).nextFocus();
           } else if (value.isEmpty && index > 0) {
-            FocusScope.of(context).previousFocus(); // Move to previous field
+            FocusScope.of(context).previousFocus();
           }
         },
       ),
