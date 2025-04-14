@@ -8,6 +8,7 @@ import 'package:total_english/screens/Account_screen.dart';
 import 'package:total_english/screens/About_screen.dart';
 
 
+
 void main() {
   runApp(const MyApp());
 }
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
       //home: LoginScreen(),
       //home: MainScreen(),
       //home: SignupScreen(),
-      home: const HomeScreen()
+      home: const HomeScreen(),
 
     );
   }
