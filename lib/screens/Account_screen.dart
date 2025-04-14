@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
 import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
+import 'package:total_english/screens/login_screen.dart';
+import 'package:total_english/screens/new_password.dart';
+import 'package:total_english/services/auth_services.dart'; // Thêm dòng này
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -56,6 +60,40 @@ class _AccountScreenState extends State<AccountScreen> {
   String get languageLabel {
     return _selectedLanguage == "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English";
   }
+
+  void _showLogoutDialog() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Xác nhận đăng xuất"),
+        content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text("Huỷ"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+
+              await AuthService().signOut();
+
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text("Đăng xuất"),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -126,8 +164,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     leading: Icon(Icons.info_outline, color: Colors.blue[700]),
                     title: const Text("Thông tin cá nhân"),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PersonalInfoScreen()));
+                    onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => const PersonalInfoScreen()));
                     },
                   ),
                   const Divider(height: 1, thickness: 1, color: Colors.black),
@@ -135,7 +172,12 @@ class _AccountScreenState extends State<AccountScreen> {
                     leading: Icon(Icons.password, color: Colors.blue[700]),
                     title: const Text("Đổi mật khẩu"),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NewPassword()),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -177,7 +219,7 @@ class _AccountScreenState extends State<AccountScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _showLogoutDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[200],
                   padding: const EdgeInsets.symmetric(vertical: 16),
