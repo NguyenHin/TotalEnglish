@@ -247,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen>{
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
           onGoogleTap: () async {
-            await AuthService().signOutGoogle(); // <- Thêm dòng này
+            await AuthService().signOut(); // <- Thêm dòng này
 
             User? user = await AuthService().signInWithGoogle();
             if (user != null && context.mounted) {
