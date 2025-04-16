@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:total_english/widgets/lesson_menu.dart';
 
 class LessonOverview extends StatefulWidget {
+  final String lessonId;
   final String lessonTitle;
   final String lessonDescription;
   final IconData lessonIcon; // Thêm tham số cho icon
   final Color lessonColor; // Thêm tham số cho màu sắc
-
+  
   const LessonOverview({
     super.key,
+    required this.lessonId,
     required this.lessonTitle,
     required this.lessonDescription,
     required this.lessonIcon,
@@ -45,7 +47,7 @@ class _LessonOverviewState extends State<LessonOverview> {
         onPressed: () {
           Navigator.pop(context);
         },
-        icon: Icon(Icons.chevron_left, size: 28),
+        icon: const Icon(Icons.chevron_left, size: 28),
       ),
     );
   }
@@ -87,7 +89,7 @@ class _LessonOverviewState extends State<LessonOverview> {
           const SizedBox(height: 24),
 
           // Menu bài học (không thay đổi màu và icon của LessonMenu)
-          LessonMenu(lessonTitle: widget.lessonTitle),
+          LessonMenu(lessonId: widget.lessonId),  // Chỉ truyền lessonId
         ],
       ),
     );
