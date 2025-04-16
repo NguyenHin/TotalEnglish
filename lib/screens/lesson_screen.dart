@@ -82,7 +82,7 @@ class _LessonScreenState extends State<LessonScreen> {
                       Color color;
                       switch (lesson['order']) {
                         case 1:
-                          icon = FontAwesomeIcons.user;
+                          icon = FontAwesomeIcons.paintbrush;
                           color = Colors.blue;
                           break;
                         case 2:
@@ -102,7 +102,7 @@ class _LessonScreenState extends State<LessonScreen> {
                           color = Colors.brown;
                           break;
                         case 6:
-                          icon = FontAwesomeIcons.paintBrush;
+                          icon = Icons.favorite;
                           color = Colors.teal;
                           break;
                         case 7:
@@ -221,6 +221,7 @@ class _LessonScreenState extends State<LessonScreen> {
                                                       context,
                                                       MaterialPageRoute(
                                                         builder: (context) => LessonOverview(
+                                                          lessonId: lesson.id,
                                                           lessonTitle: lesson['title'],  // Truyền tiêu đề bài học
                                                           lessonDescription: lesson['description'],  // Truyền mô tả bài học
                                                           lessonIcon: icon,  // Truyền icon của bài học
