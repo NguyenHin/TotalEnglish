@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:total_english/screens/verification_code.dart';
-import 'package:total_english/services/otp_service.dart';
 import 'package:total_english/widgets/acc_textfield.dart';
 import 'package:total_english/widgets/custom_button.dart';
 

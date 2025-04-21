@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:total_english/services/auth_services.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -8,30 +10,52 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
-  Map<String, String> user = {
-    'name': 'Nguyễn Văn A',
-    'email': 'nguyenvana@gmail.com',
-    'birthdate': '01/01/2000',
-    'phone': '0123456789',
-  };
+  User? _currentUser;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await _authService.getCurrentUser();
+    if (mounted) {
+      setState(() {
+        _currentUser = user;
+      });
+    }
+  }
 
   void _editInfo() async {
     final result = await Navigator.push<Map<String, String>>(
       context,
       MaterialPageRoute(
-        builder: (_) => EditPersonalInfoScreen(user: user),
+        builder: (_) => EditPersonalInfoScreen(user: _currentUser != null ? {
+          'name': _currentUser!.displayName ?? '',
+          'email': _currentUser!.email ?? '',
+          'birthdate': '',
+          'phone': '',
+        } : {},),
       ),
     );
 
     if (result != null) {
       setState(() {
-        user = result;
+        // Xử lý kết quả chỉnh sửa (nếu cần)
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    String displayName = _currentUser?.displayName ?? "Người dùng";
+    String email = _currentUser?.email ?? "Chưa có";
+    ImageProvider avatarImage = (_currentUser?.photoURL != null && _currentUser!.photoURL!.isNotEmpty)
+        ? NetworkImage(_currentUser!.photoURL!)
+        : const AssetImage('assets/icon/panda_icon.png') as ImageProvider;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -56,17 +80,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Center(
+          Center(
             child: CircleAvatar(
               radius: 50,
-              backgroundImage: AssetImage('assets/avatar.jpg'),
+              backgroundImage: avatarImage,
             ),
           ),
           const SizedBox(height: 24),
-          _buildInfoTile("Họ và tên", user['name']!),
-          _buildInfoTile("Email", user['email']!),
-          _buildInfoTile("Ngày sinh", user['birthdate']!),
-          _buildInfoTile("Số điện thoại", user['phone']!),
+          _buildInfoTile("Họ và tên", displayName),
+          _buildInfoTile("Email", email),
+          _buildInfoTile("Ngày sinh", "Chưa có"),
+          _buildInfoTile("Số điện thoại", "Chưa có"),
           const SizedBox(height: 32),
           ElevatedButton(
             onPressed: _editInfo,

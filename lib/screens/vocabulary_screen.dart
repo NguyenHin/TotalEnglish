@@ -6,8 +6,13 @@ import 'package:total_english/widgets/play_button.dart';
 
 class VocabularyScreen extends StatefulWidget {
   final String lessonId;
+  final void Function(String activity, bool isCompleted)? onCompleted;
 
-  VocabularyScreen({super.key, required this.lessonId});
+
+  VocabularyScreen({
+    super.key, 
+    required this.lessonId,
+    this.onCompleted});
 
   @override
   State<VocabularyScreen> createState() => _VocabularyScreenState();
@@ -20,6 +25,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   final TextToSpeechService _ttsService = TextToSpeechService();
+  bool _vocabularyCompleted = false;
+  
+
 
   @override
   void initState() {
@@ -58,7 +66,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       top: 30,
       child: IconButton(
         onPressed: () {
-          Navigator.pop(context);
+          Navigator.pop(context, _vocabularyCompleted ? {'completedActivity': 'vocabulary', 'isCompleted': true} : null);
         },
         icon: const Icon(Icons.chevron_left, size: 28),
       ),
@@ -105,8 +113,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                           onPageChanged: (index) {
                                             setState(() {
                                               _currentIndex = index;
+                                              print("Đang ở trang: $_currentIndex");
+
+                                              // Kiểm tra nếu người dùng đến từ vựng cuối cùng, gọi onCompleted 1 lần
+                                              if (index == _vocabularyList.length - 1 && !_vocabularyCompleted) {
+                                                _vocabularyCompleted = true;
+                                                print("Đã hoàn thành từ vựng.");
+                                                widget.onCompleted?.call('vocabulary', true);
+                                              }
+
                                             });
                                           },
+
                                           itemCount: _vocabularyList.length,
                                           itemBuilder: (context, index) {
                                             final currentWord = _vocabularyList[index];
@@ -145,7 +163,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                                     ),
                                                   ),
                                                   const SizedBox(height: 16),
-                                                   
+
                                                   Text(
                                                     wordData?['meaning'] ?? '',
                                                     style: const TextStyle(
@@ -169,9 +187,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                                     },
                                                   ),
 
-                                                 
                                                   const SizedBox(height: 16),
-                                                  // Ví dụ câu (nếu có trong dữ liệu)
+                                                  // Ví dụ câu cho từ vựng
                                                   if (wordData?.containsKey('example') ?? false)
                                                     Column(
                                                       children: [
@@ -184,17 +201,31 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                                           textAlign: TextAlign.center,
                                                         ),
                                                         const SizedBox(height: 12),
+                                                        
+                                                       //Nghĩa của câu 
+                                                        if (wordData?.containsKey('exampleMeaning') ?? false)
+                                                          Text(
+                                                            wordData?['exampleMeaning'] ?? '',
+                                                            style: const TextStyle(
+                                                              color: Colors.blueAccent,
+                                                              fontSize: 16,
+                                                            ),
+                                                            textAlign: TextAlign.center,
+                                                          ),
+                                                        const SizedBox(height: 16),
+
+                                                        // Nút play cho ví dụ
                                                         PlayButton(
                                                           onPressed: () {
                                                             final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
-                                                            if (wordData != null && wordData.containsKey('word')) {
-                                                              _ttsService.speak(wordData['word']);
+                                                            if (wordData != null && wordData.containsKey('example')) {
+                                                              _ttsService.speak(wordData['example']);
                                                             } else {
-                                                              print("Không tìm thấy từ để phát âm.");
+                                                              print("Không tìm thấy ví dụ để phát âm.");
                                                             }
                                                           },
                                                         ),
-                                                        const SizedBox(height: 16),
+                                                        const SizedBox(height: 12),
                                                       ],
                                                     ),
                                                 ],
