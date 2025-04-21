@@ -5,6 +5,11 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Lấy thông tin người dùng hiện tại
+  Future<User?> getCurrentUser() async {
+    return _auth.currentUser;
+  }
+
   // 1. Đăng nhập bằng email & password
   Future<UserCredential?> signInWithEmail(String email, String password) async {
     try {
@@ -37,7 +42,9 @@ class AuthService {
   Future<User?> signInWithFacebook() async {
     try {
       final LoginResult result = await FacebookAuth.instance.login();
-
+// Kiểm tra trạng thái login
+    print("Login result status: ${result.status}");
+    print("Login result message: ${result.message}");
       if (result.status == LoginStatus.success) {
         final accessToken = result.accessToken;
         final credential = FacebookAuthProvider.credential(accessToken!.tokenString);
@@ -55,17 +62,29 @@ class AuthService {
     }
   }
 
-  // Đăng xuất
   Future<void> signOut() async {
+  try {
+    print("📤 Bắt đầu đăng xuất Firebase");
+
+    // Đăng xuất Firebase
     await _auth.signOut();
-  }
 
+    // Đăng xuất Google nếu đang đăng nhập bằng Google
+    final googleSignIn = GoogleSignIn();
+    if (await googleSignIn.isSignedIn()) {
+      await googleSignIn.signOut();
+      print("🔁 Đã signOut Google");
+    }
 
-  // Đăng xuất khỏi Google (dùng để bắt Google hiển thị lại chọn tài khoản)
-  Future<void> signOutGoogle() async {
-    final GoogleSignIn googleSignIn = GoogleSignIn();
-    await googleSignIn.signOut();
-    print("🔁 Đã signOut Google - sẽ hiển thị lại chọn tài khoản khi đăng nhập");
+    // Đăng xuất Facebook nếu cần
+    await FacebookAuth.instance.logOut();
+    print("🔁 Đã signOut Facebook");
+
+    print("✅ Đăng xuất thành công");
+  } catch (e) {
+    print("❌ Lỗi khi signOut: $e");
   }
+}
+
 
 }

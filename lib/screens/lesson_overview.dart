@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:total_english/widgets/lesson_menu.dart';
 
 class LessonOverview extends StatefulWidget {
+  final String lessonId;
   final String lessonTitle;
   final String lessonDescription;
   final IconData lessonIcon; // Thêm tham số cho icon
   final Color lessonColor; // Thêm tham số cho màu sắc
+  final Function(Map<String, bool> completedActivities)? onLessonOverviewPop; // Callback khi LessonOverview bị pop
 
   const LessonOverview({
     super.key,
+    required this.lessonId,
     required this.lessonTitle,
     required this.lessonDescription,
     required this.lessonIcon,
     required this.lessonColor,
+    this.onLessonOverviewPop,
   });
 
   @override
@@ -20,6 +24,16 @@ class LessonOverview extends StatefulWidget {
 }
 
 class _LessonOverviewState extends State<LessonOverview> {
+  Map<String, bool> _completedActivities = {};
+
+  // Callback được gọi từ LessonMenu khi một hoạt động hoàn thành
+  void _handleActivityCompleted(String activity, bool isCompleted) {
+    setState(() {
+      _completedActivities[activity] = isCompleted;
+      print("Tiến độ cập nhật: $_completedActivities"); // In log để theo dõi
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -43,9 +57,13 @@ class _LessonOverviewState extends State<LessonOverview> {
       top: 50,
       child: IconButton(
         onPressed: () {
-          Navigator.pop(context);
+          // Gọi callback onLessonOverviewPop trước khi pop
+          if (widget.onLessonOverviewPop != null) {
+            widget.onLessonOverviewPop!(_completedActivities);
+          }
+          Navigator.pop(context, _completedActivities); // Trả về map tiến độ
         },
-        icon: Icon(Icons.chevron_left, size: 28),
+        icon: const Icon(Icons.chevron_left, size: 28),
       ),
     );
   }
@@ -87,7 +105,10 @@ class _LessonOverviewState extends State<LessonOverview> {
           const SizedBox(height: 24),
 
           // Menu bài học (không thay đổi màu và icon của LessonMenu)
-          LessonMenu(lessonTitle: widget.lessonTitle),
+          LessonMenu(
+            lessonId: widget.lessonId,
+            onActivityCompleted: _handleActivityCompleted, // Truyền callback để nhận thông tin hoàn thành
+          ),
         ],
       ),
     );

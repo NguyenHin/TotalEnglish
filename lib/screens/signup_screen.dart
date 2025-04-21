@@ -1,14 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:total_english/screens/home_screen.dart';
 import 'package:total_english/services/auth_services.dart';
 import 'package:total_english/widgets/acc_textfield.dart';
 import 'package:total_english/widgets/custom_button.dart';
 import 'package:total_english/widgets/sociallogin_button.dart';
-import 'package:total_english/screens/home_screen.dart';
+import 'package:total_english/screens/verify_email_screen.dart'; 
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
-  
+
   @override
   _SignupScreenState createState() => _SignupScreenState();
 }
@@ -17,7 +18,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
-  
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -31,7 +32,6 @@ class _SignupScreenState extends State<SignupScreen> {
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmController.text.trim();
 
-    // Kiểm tra nếu email hoặc mật khẩu trống
     if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
@@ -39,7 +39,6 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    // Kiểm tra nếu mật khẩu và xác nhận mật khẩu không khớp
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Mật khẩu và xác nhận mật khẩu không khớp')),
@@ -48,23 +47,28 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     try {
-      // Tạo tài khoản mới với email và mật khẩu
       final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Kiểm tra nếu người dùng đã được đăng nhập thành công
       if (userCredential.user != null) {
+        // Gửi email xác minh
+        await userCredential.user!.sendEmailVerification();
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tạo tài khoản thành công')),
+          const SnackBar(
+            content: Text('Đã gửi email xác minh đến địa chỉ của bạn. Vui lòng kiểm tra hộp thư đến và làm theo hướng dẫn.'),
+          ),
         );
 
-        // Chuyển hướng đến HomeScreen sau khi đăng ký thành công
-        Navigator.pushReplacementNamed(context, '/home');
+        // Chuyển hướng đến màn hình xác minh email
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const VerifyEmailScreen()),
+        );
       }
     } on FirebaseAuthException catch (e) {
-      // Xử lý lỗi khi Firebase trả về lỗi
       if (e.code == 'email-already-in-use') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Email đã được sử dụng')),
@@ -104,32 +108,29 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 50),
                   _buildSubtitle(),
                   const SizedBox(height: 25),
-                  
-                  // Account text field
+
                   AccTextfield(
-                    hintText: 'Email', 
+                    hintText: 'Email',
                     controller: _emailController,
                   ),
                   const SizedBox(height: 30),
                   AccTextfield(
-                    hintText: 'Password', 
+                    hintText: 'Password',
                     controller: _passwordController,
                   ),
                   const SizedBox(height: 30),
                   AccTextfield(
-                    hintText: 'Confirm Password', 
+                    hintText: 'Confirm Password',
                     controller: _confirmController,
                   ),
                   const SizedBox(height: 40),
 
-                  // Button
                   CustomButton(
-                    text: "Sign up", 
+                    text: "Sign up",
                     onPressed: _signup,
                   ),
                   const SizedBox(height: 20),
 
-                  // OR section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -158,31 +159,39 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Google, Facebook login buttons
                   SocialLoginButtons(
                     onGoogleTap: () async {
                       User? user = await AuthService().signInWithGoogle();
                       if (user != null && context.mounted) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
-                        );
+                        if (user.emailVerified) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Vui lòng xác minh email của bạn để tiếp tục.')),
+                          );
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const VerifyEmailScreen()),
+                          );
+                        }
                       } else {
-                        // Hiện thông báo lỗi nếu cần
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Đăng nhập thất bại')),
+                          const SnackBar(content: Text('Đăng nhập bằng Google thất bại')),
                         );
                       }
                     },
                     onFacebookTap: () async {
                       User? user = await AuthService().signInWithFacebook();
                       if (user != null && context.mounted) {
+                        // Chuyển hướng trực tiếp đến HomeScreen sau khi đăng nhập Facebook thành công
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => const HomeScreen()),
                         );
                       } else {
-                        // Hiện thông báo lỗi nếu cần
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Đăng nhập bằng Facebook thất bại')),
                         );
@@ -192,7 +201,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ],
               ),
             ),
-            // Back button
             _buildBackButton(context),
           ],
         ),
@@ -207,14 +215,14 @@ class _SignupScreenState extends State<SignupScreen> {
       child: IconButton(
         onPressed: () {
           Navigator.pop(context);
-        }, 
-        icon: const Icon(Icons.chevron_left, size: 28,),
+        },
+        icon: const Icon(Icons.chevron_left, size: 28),
       ),
     );
   }
 
   Widget _buildTitle() {
-    return const Center(  
+    return const Center(
       child: Text(
         'TotalEnglish',
         style: TextStyle(

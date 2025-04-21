@@ -40,16 +40,16 @@ async function seedData() {
 
   // Danh sách bài học
   const lessons = [
-    { order: 1, title: 'L1-1: Giới thiệu bản thân', description: 'Introduce yourself' },
+    { order: 1, title: 'L1-1: Giới thiệu màu sắc', description: 'Introduce yourself' },
     { order: 2, title: 'L1-2: Giới thiệu gia đình', description: 'Introduce family' },
     { order: 3, title: 'L1-3: Giới thiệu trường học', description: 'Introduce school' },
     { order: 4, title: 'L1-4: Giới thiệu động vật', description: 'Introduce animals' },
-    { order: 5, title: 'L1-5: Giới thiệu cây cối', description: 'Talk about trees' },
-    { order: 6, title: 'L1-6: Giới thiệu sở thích', description: 'Talk about hobbies' },
-    { order: 7, title: 'L1-7: Giới thiệu công việc', description: 'Talk about jobs' },
-    { order: 8, title: 'L1-8: Giới thiệu thành phố', description: 'Talk about city' },
-    { order: 9, title: 'L1-9: Giới thiệu đất nước', description: 'Talk about country' },
-    { order: 10, title: 'L1-10: Giới thiệu món ăn', description: 'Talk about food' },
+    { order: 5, title: 'L1-5: Giới thiệu cây cối', description: 'Introduce trees' },
+    { order: 6, title: 'L1-6: Giới thiệu sở thích', description: 'Introduce hobbies' },
+    { order: 7, title: 'L1-7: Giới thiệu nghề nghiệp', description: 'Introduce jobs' },
+    { order: 8, title: 'L1-8: Giới thiệu thành phố', description: 'Introduce city' },
+    { order: 9, title: 'L1-9: Giới thiệu quốc gia', description: 'Introduce country' },
+    { order: 10, title: 'L1-10: Giới thiệu món ăn', description: 'Introduce food' },
   ];
 
   for (const [index, lesson] of lessons.entries()) {

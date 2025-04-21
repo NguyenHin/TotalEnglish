@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/forgot_password.dart';
 import 'package:total_english/screens/home_screen.dart';
-import 'package:total_english/screens/lesson_screen.dart';
 import 'package:total_english/screens/signup_screen.dart';
 import 'package:total_english/services/auth_services.dart';
 import 'package:total_english/widgets/custom_button.dart';
@@ -247,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen>{
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
           onGoogleTap: () async {
-            await AuthService().signOutGoogle(); // <- Thêm dòng này
+            await AuthService().signOut(); // <- Thêm dòng này
 
             User? user = await AuthService().signInWithGoogle();
             if (user != null && context.mounted) {
