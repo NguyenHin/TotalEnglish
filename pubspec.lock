@@ -416,6 +416,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.5.4"
+  intl:
+    dependency: "direct main"
+    description:
+      name: intl
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.20.2"
   js:
     dependency: transitive
     description:
@@ -464,6 +472,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.1"
+  lottie:
+    dependency: "direct main"
+    description:
+      name: lottie
+      sha256: c5fa04a80a620066c15cf19cc44773e19e9b38e989ff23ea32e5903ef1015950
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.3.1"
   matcher:
     dependency: transitive
     description:
@@ -677,6 +693,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "14.3.1"
+  waveform_flutter:
+    dependency: "direct main"
+    description:
+      name: waveform_flutter
+      sha256: "08c9e98d4cf119428d8b3c083ed42c11c468623eaffdf30420ae38e36662922a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   web:
     dependency: transitive
     description:

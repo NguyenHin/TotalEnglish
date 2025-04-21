@@ -1,12 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
 import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/new_password.dart';
-import 'package:total_english/services/auth_services.dart'; // Thêm dòng này
+import 'package:total_english/services/auth_services.dart'; // Đảm bảo đường dẫn đúng
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -16,7 +16,24 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  String _selectedLanguage = "vi"; // "vi" = Tiếng Việt, "en" = English
+  String _selectedLanguage = "vi";
+  User? _currentUser;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await _authService.getCurrentUser();
+    if (mounted) {
+      setState(() {
+        _currentUser = user;
+      });
+    }
+  }
 
   void _showLanguagePicker() {
     showModalBottomSheet(
@@ -62,38 +79,38 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _showLogoutDialog() {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Xác nhận đăng xuất"),
-        content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text("Huỷ"),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Xác nhận đăng xuất"),
+          content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Huỷ"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
 
-              await AuthService().signOut();
+                await _authService.signOut();
 
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-            child: const Text("Đăng xuất"),
-          ),
-        ],
-      );
-    },
-  );
-}
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+              child: const Text("Đăng xuất"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,24 +131,33 @@ class _AccountScreenState extends State<AccountScreen> {
                 children: [
                   Row(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 30,
-                        backgroundImage: AssetImage('assets/avatar.jpg'),
+                        backgroundImage: _currentUser?.photoURL != null
+                            ? NetworkImage(_currentUser!.photoURL!)
+                            : const AssetImage('assets/icon/panda_icon.png') as ImageProvider,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text("Tên", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 4),
-                            Text("Chuyển tài khoản", style: TextStyle(fontSize: 15, color: Colors.black)),
+                          children: [
+                            Text(
+                              _currentUser?.displayName ?? "Người dùng",
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text("Chuyển tài khoản", style: TextStyle(fontSize: 15, color: Colors.black)),
                           ],
                         ),
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SwitchAccountScreen()));
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SwitchAccountScreen()));
                         },
                         child: const Icon(Icons.compare_arrows),
                       ),
@@ -145,7 +171,10 @@ class _AccountScreenState extends State<AccountScreen> {
                       title: const Text("Cài đặt"),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SettingsScreen()));
                       },
                     ),
                   ),
@@ -161,10 +190,15 @@ class _AccountScreenState extends State<AccountScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.info_outline, color: Colors.blue[700]),
+                    leading:
+                        Icon(Icons.info_outline, color: Colors.blue[700]),
                     title: const Text("Thông tin cá nhân"),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => const PersonalInfoScreen()));
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const PersonalInfoScreen()));
                     },
                   ),
                   const Divider(height: 1, thickness: 1, color: Colors.black),
@@ -175,7 +209,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const NewPassword()),
+                        MaterialPageRoute(
+                            builder: (context) => const NewPassword()),
                       );
                     },
                   ),
@@ -195,7 +230,10 @@ class _AccountScreenState extends State<AccountScreen> {
                     title: const Text("Giới thiệu"),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const AboutScreen()));
                     },
                   ),
                   const Divider(height: 1, thickness: 1, color: Colors.black),
@@ -223,7 +261,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[200],
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
                 ),
                 child: const Text("Đăng xuất", style: TextStyle(fontSize: 16)),
               ),

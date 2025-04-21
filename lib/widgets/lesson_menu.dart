@@ -6,10 +6,12 @@ import 'package:total_english/screens/vocabulary_screen.dart'; // Import màn h�
 
 class LessonMenu extends StatelessWidget {
   final String lessonId;
-
-  LessonMenu({
+  final Function(String activity, bool isCompleted)? onActivityCompleted;
+  
+  const LessonMenu({
     super.key,
     required this.lessonId,  // Chỉ cần truyền lessonId
+    this.onActivityCompleted,
   });
 
   @override
@@ -22,28 +24,60 @@ class LessonMenu extends StatelessWidget {
           "Từ vựng",
           Icons.library_books,
           Color(0xFFF2D16C),
-          VocabularyScreen(lessonId: lessonId), // Chỉ cần truyền lessonId
+          VocabularyScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted");  // Log khi callback được gọi
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ),
         ),
         _buildMenuButton(
           context,
           "Luyện nghe",
           Icons.headphones,
           Color(0xFFBFA8E7),
-          ListeningScreen(lessonId: lessonId,), // Chuyển đến màn hình ListeningScreen
+          ListeningScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ), // Chuyển đến màn hình ListeningScreen
         ),
         _buildMenuButton(
           context,
           "Luyện nói",
           Icons.mic,
           Color(0xFF95E499),
-          SpeakingScreen(), // Chuyển đến màn hình SpeakingScreen
+          SpeakingScreen(
+    lessonId: lessonId,
+    onCompleted: (activity, isCompleted) {
+      print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
+      if (onActivityCompleted != null) {
+        onActivityCompleted!(activity, isCompleted);
+      }
+    },
+  ), // Chuyển đến màn hình SpeakingScreen
         ),
         _buildMenuButton(
           context,
           "Bài kiểm tra",
           Icons.assignment,
           Color(0xFF89B3D4),
-          QuizScreen(), // Chuyển đến màn hình QuizScreen
+         QuizScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ), // Chuyển đến màn hình QuizScreen
         ),
       ],
     );
@@ -65,13 +99,21 @@ class LessonMenu extends StatelessWidget {
         ),
         child: InkWell(  // Sử dụng InkWell để xử lý sự kiện nhấn
           borderRadius: BorderRadius.circular(12.0),
-          onTap: () {
-            // Khi nhấn vào nút, sẽ chuyển đến màn hình tương ứng
-            Navigator.push(
+          onTap: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => targetScreen),
             );
+
+            if (result is Map && onActivityCompleted != null) {
+              final activity = result['completedActivity'];
+              final isCompleted = result['isCompleted'] ?? false;
+              if (activity != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            }
           },
+
           child: Container(  // Thêm container để chứa toàn bộ giao diện của nút
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
