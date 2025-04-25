@@ -166,34 +166,47 @@ class _LoginScreenState extends State<LoginScreen>{
           child: CustomButton(
             text: 'Login',
             onPressed: () async {
-              try {
-                final credential = await AuthService().signInWithEmail(
-                  emailController.text.trim(),
-                  passwordController.text.trim(),
-                );
+  try {
+    final credential = await AuthService().signInWithEmail(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
 
-                if (credential != null && context.mounted) {
-                  failedLoginAttempts = 0; // reset
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
-                } else {
-                  throw Exception('Đăng nhập thất bại');
-                }
-              } catch (e) {
-                failedLoginAttempts++;
+    if (credential != null) {
+      // Kiểm tra trạng thái xác minh email
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.emailVerified) {
+        // Nếu email đã được xác minh, chuyển đến màn hình chính
+        failedLoginAttempts = 0; // reset
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        // Nếu email chưa được xác minh, thông báo cho người dùng
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng xác minh email của bạn.')),
+        );
+        // Bạn có thể gửi lại email xác minh nếu cần
+        await user?.sendEmailVerification();
+      }
+    } else {
+      throw Exception('Đăng nhập thất bại');
+    }
+  } catch (e) {
+    failedLoginAttempts++;
 
-                String message = 'Email hoặc mật khẩu không đúng';
-                if (failedLoginAttempts >= 3) {
-                  message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
-                }
+    String message = 'Email hoặc mật khẩu không đúng';
+    if (failedLoginAttempts >= 3) {
+      message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
+    }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(message)),
-                );
-              }
-            }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+}
+
 
 
 
