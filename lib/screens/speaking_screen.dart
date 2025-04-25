@@ -1,5 +1,4 @@
 import 'dart:async'; // Import thư viện async
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -34,6 +33,8 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   String _micButtonLabel = 'Nói';
   Timer? _listeningTimer; // Thêm biến Timer
   bool _isLessonCompleted = false; // Theo dõi trạng thái hoàn thành
+  
+  
 
   final Set<int> _spokenCorrectly = {}; // Theo dõi các từ đã nói đúng
 
@@ -69,67 +70,75 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
   void _startListening() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (status) {
-          print("Speech status: $status");
-          if (status == 'done' || status == 'notListening') {
-            setState(() {
-              _isListening = false;
-              _micButtonLabel = 'Nói';
-              _stopMicPulse();
-              _cancelListeningTimer(); // Hủy timer nếu có
-            });
-          } else if (status == 'listening') {
-            setState(() {
-              _micButtonLabel = 'Đang nghe...';
-            });
-            _startListeningTimer(); // Bắt đầu timer khi bắt đầu nghe
-          }
-        },
-        onError: (error) {
-          print("Speech error: $error");
+  _cancelListeningTimer(); // Hủy timer cũ nếu có
+
+  if (!_isListening) {
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        print("Speech status: $status");
+        if (status == 'done' || status == 'notListening') {
           setState(() {
             _isListening = false;
             _micButtonLabel = 'Nói';
             _stopMicPulse();
-            _cancelListeningTimer(); // Hủy timer nếu có
           });
-        },
-      );
-      if (available) {
-        setState(() {
-          _isListening = true;
-          _micButtonLabel = 'Đang nghe...'; // Cập nhật label ngay khi bắt đầu nghe
-        });
-        _startMicPulse();
-        _recognizedText = '';
-        _speech.listen(
-          localeId: 'en_US',
-          listenMode: stt.ListenMode.confirmation,
-          onResult: (result) {
-            setState(() {
-              _recognizedText = result.recognizedWords;
-              print("Recognized: $_recognizedText");
-              if (result.finalResult) {
-                _checkSpokenWord();
-              }
-            });
-          },
-        );
-        _startListeningTimer(); // Bắt đầu timer sau khi bắt đầu listen
-      } else {
+          _cancelListeningTimer(); // Hủy timer
+        } else if (status == 'listening') {
+          setState(() {
+            _micButtonLabel = 'Đang nghe...';
+          });
+          _startListeningTimer(); // Reset timer mỗi khi nghe lại
+        }
+      },
+      onError: (error) {
+        print("Speech error: $error");
         setState(() {
           _isListening = false;
           _micButtonLabel = 'Nói';
           _stopMicPulse();
-          _cancelListeningTimer(); // Hủy timer nếu có
         });
-      }
+        _cancelListeningTimer();
+      },
+    );
+
+    if (available && !_speech.isListening) {
+      await _speech.stop(); // Đảm bảo dừng session trước đó nếu còn kẹt
+      await Future.delayed(const Duration(milliseconds: 200)); // Nhẹ để đảm bảo mic sẵn sàng
+
+      setState(() {
+        _isListening = true;
+        _micButtonLabel = 'Đang nghe...';
+      });
+
+      _startMicPulse();
+      _recognizedText = '';
+      _speech.listen(
+        localeId: 'en_US',
+        listenMode: stt.ListenMode.confirmation,
+        onResult: (result) {
+          setState(() {
+            _recognizedText = result.recognizedWords;
+            print("Recognized: $_recognizedText");
+            if (result.finalResult) {
+              _checkSpokenWord();
+            }
+          });
+        },
+      );
+      _startListeningTimer(); // Đặt lại timer
     } else {
-      _stopListening(); // Sử dụng hàm dừng nghe riêng
+      setState(() {
+        _isListening = false;
+        _micButtonLabel = 'Nói';
+        _stopMicPulse();
+      });
+      _cancelListeningTimer();
     }
+  } else {
+    _stopListening();
   }
+}
+
 
   void _startListeningTimer() {
     _listeningTimer = Timer(const Duration(seconds: 4), () {
@@ -221,7 +230,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withOpacity(0.25),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),

@@ -11,8 +11,8 @@ class TextToSpeechService {
   print("Đang khởi tạo FlutterTts...");
   try {
     await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.4);
-    await _flutterTts.setPitch(1.0);
+    await _flutterTts.setSpeechRate(0.5);   //Tốc độ đọc (0.0 - 1.0)
+    await _flutterTts.setPitch(0.5);    //cao độ (0.0 - 1.0)
     
     print("FlutterTts khởi tạo thành công.");
   } catch (e) {
@@ -22,6 +22,7 @@ class TextToSpeechService {
 
   Future<void> speak(String text) async {
     await _flutterTts.stop();
+    await _flutterTts.setVolume(1.0); // âm lượng
     await _flutterTts.speak(text);
   }
 

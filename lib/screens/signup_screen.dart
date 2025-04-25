@@ -28,66 +28,67 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signup() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final confirmPassword = _confirmController.text.trim();
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+  final confirmPassword = _confirmController.text.trim();
 
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
-      );
-      return;
-    }
-
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mật khẩu và xác nhận mật khẩu không khớp')),
-      );
-      return;
-    }
-
-    try {
-      final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (userCredential.user != null) {
-        // Gửi email xác minh
-        await userCredential.user!.sendEmailVerification();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã gửi email xác minh đến địa chỉ của bạn. Vui lòng kiểm tra hộp thư đến và làm theo hướng dẫn.'),
-          ),
-        );
-
-        // Chuyển hướng đến màn hình xác minh email
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const VerifyEmailScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email đã được sử dụng')),
-        );
-      } else if (e.code == 'weak-password') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mật khẩu quá yếu, phải có ít nhất 6 ký tự')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.message}')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi không xác định: $e')),
-      );
-    }
+  if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
+    );
+    return;
   }
+
+  if (password != confirmPassword) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mật khẩu và xác nhận mật khẩu không khớp')),
+    );
+    return;
+  }
+
+  try {
+    final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    if (userCredential.user != null) {
+      // Gửi email xác minh
+      await userCredential.user!.sendEmailVerification();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã gửi email xác minh đến địa chỉ của bạn. Vui lòng kiểm tra hộp thư đến và làm theo hướng dẫn.'),
+        ),
+      );
+
+      // Chuyển hướng đến màn hình xác minh email
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const VerifyEmailScreen()),
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'email-already-in-use') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email đã được sử dụng')),
+      );
+    } else if (e.code == 'weak-password') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu quá yếu, phải có ít nhất 6 ký tự')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: ${e.message}')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Lỗi không xác định: $e')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
