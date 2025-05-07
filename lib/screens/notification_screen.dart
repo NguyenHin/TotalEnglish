@@ -14,32 +14,25 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Center(
-          child: Column(
-            children: [
-              Text(
-                'Thông báo',
-                style: TextStyle(
-                  fontFamily: 'KohSantepheap',
-                  fontSize: 20.0,
-                ),
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
+          crossAxisAlignment: CrossAxisAlignment.center, // Căn giữa theo chiều ngang
+          children: [
+            Text(
+              'Thông báo',
+              style: const TextStyle(
+                fontFamily: 'KohSantepheap',
+                fontSize: 20.0,
               ),
-              SizedBox(height: 4.0),
-              Divider(
-                color: Colors.grey,
-                thickness: 0.5,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 4.0),
+            const Divider(
+              color: Colors.grey,
+              thickness: 0.5,
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () {
-              // TODO: Handle edit action (ví dụ: đánh dấu đã đọc tất cả)
-            },
-          ),
-        ],
+      
       ),
       body: currentUser == null
           ? const Center(child: Text('Bạn chưa đăng nhập.'))
@@ -51,6 +44,7 @@ class NotificationScreen extends StatelessWidget {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
+                  print('🔥 Lỗi khi đọc notifications: ${snapshot.error}');
                   return const Center(child: Text('Đã xảy ra lỗi khi tải thông báo.'));
                 }
 
@@ -95,7 +89,7 @@ class NotificationScreen extends StatelessWidget {
                         iconColor = Colors.orange;
                         break;
                       case 'streak_lost':
-                        icon = Icons.broken_image_outlined;
+                        icon = Icons.local_fire_department;
                         iconColor = Colors.grey;
                         break;
                       case 'new_content':
@@ -132,11 +126,7 @@ class NotificationScreen extends StatelessWidget {
                                   message ?? 'Không có nội dung',
                                   style: const TextStyle(fontSize: 16.0),
                                 ),
-                                if (streakDays != null && notificationType == 'streak_achieved')
-                                  Text(
-                                    'Bạn đã đạt được chuỗi $streakDays ngày học tập!',
-                                    style: const TextStyle(fontSize: 14.0, color: Colors.black87),
-                                  ),
+                                
                                 if (createdAt != null)
                                   Text(
                                     DateFormat('HH:mm dd/MM/yyyy')
