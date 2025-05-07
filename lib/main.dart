@@ -8,6 +8,7 @@ import 'package:total_english/services/otp_service.dart'; // Import OTPService
 // Khai báo RouteObserver
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   OTPService.configOTP(); // Cấu hình OTPService khi ứng dụng khởi động
