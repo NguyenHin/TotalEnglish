@@ -1,4 +1,4 @@
-import 'dart:async'; // Import thư viện async
+import 'dart:async'; 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -6,7 +6,7 @@ import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:total_english/widgets/play_button.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Import FontAwesome
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SpeakingScreen extends StatefulWidget {
   final String lessonId;
@@ -189,30 +189,36 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
   void _checkSpokenWord() {
-    if (_vocabularyList.isNotEmpty && _currentPage < _vocabularyList.length) {
-      final wordData = _vocabularyList[_currentPage].data() as Map<String, dynamic>?;
-      final correctWord = wordData?['word'] as String? ?? '';
-      final spokenWord = _recognizedText.trim().toLowerCase();
-      final targetWord = correctWord.toLowerCase();
-      setState(() {
-        if (spokenWord == targetWord) {
-          _speakingHint = 'Đúng! 🎉';
-          _spokenCorrectly.add(_currentPage);
-          updateStreak(); //update streak
-          if (_spokenCorrectly.length == _vocabularyList.length) {
-            _isLessonCompleted = true;
-            if (widget.onCompleted != null) {
-              widget.onCompleted!('speaking', true);
-            }
-          }
-        } else if (spokenWord.isNotEmpty) {
-          _speakingHint = 'Chưa đúng, thử lại.';
-        } else {
-          _speakingHint = '';
-        }
-      });
+    if (_vocabularyList.isEmpty || _currentPage >= _vocabularyList.length) return;
+
+    final wordData = _vocabularyList[_currentPage].data() as Map<String, dynamic>?;
+    final correctWord = wordData?['word'] as String? ?? '';
+    final spokenWord = _recognizedText.trim().toLowerCase();
+    final targetWord = correctWord.toLowerCase();
+
+    bool isCorrect = spokenWord == targetWord;
+    String hintMessage = '';
+
+    if (isCorrect) {
+      _spokenCorrectly.add(_currentPage);
+      hintMessage = 'Đúng! 🎉';
+      if (_spokenCorrectly.length == _vocabularyList.length) {
+        _isLessonCompleted = true;
+        widget.onCompleted?.call('speaking', true);
+      }
+    } else if (spokenWord.isNotEmpty) {
+      hintMessage = 'Chưa đúng, thử lại.';
     }
+
+    // Cập nhật UI trong một lần duy nhất
+    setState(() {
+      _speakingHint = hintMessage;
+    });
+
+    // 👇 Chỉ update streak nếu nói đúng
+    if (isCorrect) updateStreak();
   }
+
 
   Widget _buildSpeakButton() {
     return GestureDetector(

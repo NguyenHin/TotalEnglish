@@ -95,12 +95,12 @@ async function seedData() {
         correctAnswer: "A"
       });
 
-      await db.collection('user_progress').add({
-        userID,
-        lessonID,
-        progressPercent: 0,
-        completedAt: null
-      });
+      // await db.collection('user_progress').add({
+      //   userID,
+      //   lessonID,
+      //   progressPercent: 0,
+      //   completedAt: null
+      // });
 
       console.log(`✅ Đã thêm bài học mới: ${lesson.title}`);
     } else {

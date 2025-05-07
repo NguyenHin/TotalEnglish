@@ -96,15 +96,15 @@ class _LoginScreenState extends State<LoginScreen>{
   return Stack(
     children: [
       // Language switcher
-      Positioned(
-        left: screenWidth * 0.6,
-        top: screenHeight * 0.07,
-        child: LanguageSwitcher(
-          onLanguageChanged: (String newLanguage) {
-            debugPrint('Ngôn ngữ đã đổi sang: $newLanguage');
-          },
-        ),
-      ),
+      // Positioned(
+      //   left: screenWidth * 0.6,
+      //   top: screenHeight * 0.07,
+      //   child: LanguageSwitcher(
+      //     onLanguageChanged: (String newLanguage) {
+      //       debugPrint('Ngôn ngữ đã đổi sang: $newLanguage');
+      //     },
+      //   ),
+      // ),
 
       // Email field
       Positioned(

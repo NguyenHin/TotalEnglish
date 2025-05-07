@@ -2,4 +2,6 @@
     <string name="app_name">Total English</string>
     <string name="facebook_app_id">679950874429365</string>
     <string name="fb_login_protocol_scheme">fb679950874429365</string>
+    <string name="facebook_client_token">11ca49689b9b4d7d153c87e9f30991a2</string>
+
 </resources>

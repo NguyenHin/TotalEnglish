@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:total_english/services/streak_services.dart';
@@ -80,71 +79,45 @@ class _ListeningScreenState extends State<ListeningScreen> {
     _vocabularyHints = List.generate(_selectedWords.length, (_) => null); // Khởi tạo list hint cho từng trang
   }
 
-  void _checkAnswer() async {
-    if (_selectedWords.isNotEmpty && _currentPage < _selectedWords.length) {
-      final correctWord = (_selectedWords[_currentPage].data() as Map<String, dynamic>?)?['word']?.toString().toLowerCase() ?? '';
-      final correctMeaning = (_selectedWords[_currentPage].data() as Map<String, dynamic>?)?['meaning']?.toString() ?? '';
-      final userAnswer = _controller.text.trim().toLowerCase();
+  Future<void> _checkAnswer() async {
+    if (_selectedWords.isEmpty || _currentPage >= _selectedWords.length) return;
 
-      setState(() {
-      if (userAnswer == correctWord) {
-        if (!_answeredCorrectly.contains(_currentPage)) {
-          _answeredCorrectly.add(_currentPage); // ✅ chỉ thêm nếu chưa đúng trước đó
-          _updateProgress(); // ✅ cập nhật tiến độ
-        }
+    final wordData = _selectedWords[_currentPage].data() as Map<String, dynamic>?;
+    final correctWord = wordData?['word']?.toString().toLowerCase() ?? '';
+    final correctMeaning = wordData?['meaning']?.toString() ?? '';
+    final userAnswer = _controller.text.trim().toLowerCase();
 
-        _vocabularyHints[_currentPage] = '$correctWord : $correctMeaning';
-        updateStreak(); // 🔁
-      } else {
-        _vocabularyHints[_currentPage] = 'Không đúng, thử lại.';
+    bool isCorrect = userAnswer == correctWord;
+    String hintMessage = '';
+
+    if (isCorrect) {
+      // Nếu câu trả lời đúng
+      if (!_answeredCorrectly.contains(_currentPage)) {
+        _answeredCorrectly.add(_currentPage);
+        //_updateProgress();
       }
-    });
+      hintMessage = '$correctWord : $correctMeaning';
 
-      // Kiểm tra nếu đã hoàn thành tất cả các câu hỏi
-      if (_currentPage == _selectedWords.length - 1 && _answeredCorrectly.length == _selectedWords.length) {
-        setState(() {
-          _isLessonCompleted = true;
-        });
-        await _completeLesson();
-        // Gọi callback onCompleted khi hoàn thành
-        if (widget.onCompleted != null) {
-          widget.onCompleted!('listening', true);
-        }
-      }
+      // Update streak (không đợi kết quả)
+      updateStreak();
+    } else {
+      hintMessage = 'Không đúng, thử lại.';
     }
-  }
 
-  Future<void> _updateProgress() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-
-    final progressRef = FirebaseFirestore.instance.collection('user_progress').doc(userId);
-    final snapshot = await progressRef.get();
-
-    final currentCorrect = snapshot.data()?['correctAnswersCount'] ?? 0;
-    final totalQuestions = _selectedWords.length;
-
-    final newCorrect = currentCorrect + 1;
-    final newProgress = (newCorrect / totalQuestions) * 100;
-
-    await progressRef.update({
-      'correctAnswersCount': newCorrect,
-      'progress': newProgress,
+    // Cập nhật UI trong một lần duy nhất
+    setState(() {
+      _vocabularyHints[_currentPage] = hintMessage;
     });
-  }
 
-  Future<void> _completeLesson() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-
-    final progressRef = FirebaseFirestore.instance.collection('user_progress').doc(userId);
-
-    await progressRef.set({
-      widget.lessonId: {
-        'listening': 25,
-      },
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    // Kiểm tra nếu đã hoàn thành tất cả các câu hỏi
+    if (_currentPage == _selectedWords.length - 1 && _answeredCorrectly.length == _selectedWords.length) {
+      setState(() {
+        _isLessonCompleted = true;
+      });
+      //await _completeLesson();
+      print("Đã hoàn thành listening .");
+      widget.onCompleted?.call('listening', true);
+    }
   }
 
   @override
