@@ -23,6 +23,7 @@ class _StreakScreenState extends State<StreakScreen> {
     _loadMotivations();
   }
 
+  //lấy motivation
   Future<void> _loadMotivations() async {
     try {
       final activeSnapshot = await FirebaseFirestore.instance.collection('motivations_active').get();
@@ -156,8 +157,9 @@ class _StreakScreenState extends State<StreakScreen> {
                   motivationText,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 25,
+                    fontSize: 20,
                   ),
+                  
                 ),
                 const SizedBox(width: 1),
                 const Icon(
@@ -209,13 +211,13 @@ class _StreakScreenState extends State<StreakScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              DayCircle(label: 'T', filled: _checkDayInStreak(snapshot, 0), borderColor: _getDayBorderColor(snapshot, 0), size: 40),
-              DayCircle(label: 'W', filled: _checkDayInStreak(snapshot, 1), borderColor: _getDayBorderColor(snapshot, 1), size: 40),
-              DayCircle(label: 'T', filled: _checkDayInStreak(snapshot, 2), borderColor: _getDayBorderColor(snapshot, 2), size: 40),
-              DayCircle(label: 'F', filled: _checkDayInStreak(snapshot, 3), borderColor: _getDayBorderColor(snapshot, 3), size: 40),
-              DayCircle(label: 'S', filled: _checkDayInStreak(snapshot, 4), borderColor: _getDayBorderColor(snapshot, 4), size: 40),
+              DayCircle(label: 'M', filled: _checkDayInStreak(snapshot, 0), borderColor: _getDayBorderColor(snapshot, 0), size: 40),
+              DayCircle(label: 'T', filled: _checkDayInStreak(snapshot, 1), borderColor: _getDayBorderColor(snapshot, 1), size: 40),
+              DayCircle(label: 'W', filled: _checkDayInStreak(snapshot, 2), borderColor: _getDayBorderColor(snapshot, 2), size: 40),
+              DayCircle(label: 'T', filled: _checkDayInStreak(snapshot, 3), borderColor: _getDayBorderColor(snapshot, 3), size: 40),
+              DayCircle(label: 'F', filled: _checkDayInStreak(snapshot, 4), borderColor: _getDayBorderColor(snapshot, 4), size: 40),
               DayCircle(label: 'S', filled: _checkDayInStreak(snapshot, 5), borderColor: _getDayBorderColor(snapshot, 5), size: 40),
-              DayCircle(label: 'M', filled: _checkDayInStreak(snapshot, 6), borderColor: _getDayBorderColor(snapshot, 6), size: 40),
+              DayCircle(label: 'S', filled: _checkDayInStreak(snapshot, 6), borderColor: _getDayBorderColor(snapshot, 6), size: 40),
             ],
           ),
         ),
@@ -269,24 +271,18 @@ class _StreakScreenState extends State<StreakScreen> {
     return false;
   }
 
-  bool _checkDayInStreak(DocumentSnapshot? snapshot, int dayOffset) {
+
+  bool _checkDayInStreak(DocumentSnapshot? snapshot, int index) {
     if (snapshot != null && snapshot.exists) {
       final streakData = snapshot.data() as Map<String, dynamic>?;
-      final lastStudiedAtTimestamp = streakData?['lastStudiedAt'] as Timestamp?;
-      final currentStreak = streakData?['currentStreak'] as int? ?? 0;
+      final studiedDays = streakData?['studiedDays'] as List<dynamic>? ?? [];
 
-      if (lastStudiedAtTimestamp != null) {
-        final lastStudiedAt = lastStudiedAtTimestamp.toDate().toLocal();
-        final now = DateTime.now().toLocal();
-        final targetDate = now.subtract(Duration(days: dayOffset));
-        final streakStartDate = now.subtract(Duration(days: currentStreak - 1));
-
-        return targetDate.isAfter(streakStartDate.subtract(const Duration(days: 1))) &&
-            targetDate.isBefore(now.add(const Duration(days: 1)));
-      }
+      // cộng +1 vì index (0–6) muốn khớp với DateTime.weekday (1–7)
+      return studiedDays.contains(index + 1);
     }
     return false;
   }
+
 
   Color _getDayBorderColor(DocumentSnapshot? snapshot, int dayOffset) {
     if (_checkDayInStreak(snapshot, dayOffset)) {
@@ -295,7 +291,11 @@ class _StreakScreenState extends State<StreakScreen> {
       return const Color(0xFF777777);
     }
   }
+
+
 }
+
+
 
 // Widget nút ngày (vòng tròn)
 class DayCircle extends StatelessWidget {

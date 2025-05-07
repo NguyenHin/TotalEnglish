@@ -11,6 +11,7 @@ final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<v
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   OTPService.configOTP(); // Cấu hình OTPService khi ứng dụng khởi động
+  
   runApp(const MyApp());
 }
 

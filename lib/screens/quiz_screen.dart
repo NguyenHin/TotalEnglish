@@ -29,6 +29,7 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _isQuizOver = false; // Trạng thái trò chơi đã kết thúc
   bool _isLoadingData = true; // Trạng thái đang tải dữ liệu
   String _loadingErrorMessage = ''; // Thông báo lỗi khi tải dữ liệu
+  bool _streakUpdated = false;
 
   @override
   void initState() {
@@ -123,10 +124,15 @@ class _QuizScreenState extends State<QuizScreen> {
           _isCardMatched[firstIndex] = true;
           _isCardMatched[secondIndex] = true;
           _currentlyFlippedIndices = [null, null];
+
+          // Cập nhật streak ngay khi lật đúng cặp
+        if (!_streakUpdated) {
+          _streakUpdated = true; // Đảm bảo chỉ gọi 1 lần
+          updateStreak();  
+        }
           if (_isCardMatched.every((matched) => matched)) {
             _isQuizOver = true;
-            updateStreak(); //update streak khi hoan thanh
-            // **Vẫn không gọi onCompleted ở đây**
+            
           }
         });
       } else {

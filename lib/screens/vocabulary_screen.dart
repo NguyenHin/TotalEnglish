@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:total_english/widgets/play_button.dart';
@@ -26,8 +27,26 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   String? _errorMessage;
   final TextToSpeechService _ttsService = TextToSpeechService();
   bool _vocabularyCompleted = false;
-  
+  int _listenCount = 0;
+  bool _streakUpdated = false;
 
+  //nghe 5 lần -> streak
+  Future<void> _handleListen(String text) async {
+    await _ttsService.speak(text);
+    _listenCount++;
+    print('So lan nghe hien tai: $_listenCount');
+    
+    if (_listenCount >=5 && !_streakUpdated) {
+      _streakUpdated = true;
+      print("Đã nghe đủ 5 lần. Cập nhật streak...");
+      try {
+        await updateStreak();
+        print("Cập nhật streak thành công.");
+      } catch (e) {
+        print("Lỗi khi cập nhật streak: $e");
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -175,12 +194,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                                   const SizedBox(height: 16),
 
                                                   PlayButton(
-                                                    onPressed: () {
+                                                    onPressed: () async{
                                                       final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
                                                       if (wordData != null && wordData.containsKey('word')) {
-                                                        print("Dữ liệu từ Firestore (wordData): $wordData");
-                                                        print("Từ để phát âm (wordData['word']): ${wordData['word']}");
-                                                        _ttsService.speak(wordData['word']).then((value) => print("Đã hoàn thành phát âm")).catchError((error) => print("Lỗi khi phát âm: $error"));
+                                                        await _handleListen(wordData['word']);
+
+
                                                       } else {
                                                         print("Không tìm thấy từ để phát âm.");
                                                       }
@@ -216,10 +235,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
                                                         // Nút play cho ví dụ
                                                         PlayButton(
-                                                          onPressed: () {
+                                                          onPressed: () async {
                                                             final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
                                                             if (wordData != null && wordData.containsKey('example')) {
-                                                              _ttsService.speak(wordData['example']);
+                                                              await _handleListen(wordData['example']);
                                                             } else {
                                                               print("Không tìm thấy ví dụ để phát âm.");
                                                             }

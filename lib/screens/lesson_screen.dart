@@ -50,24 +50,20 @@ class _LessonScreenState extends State<LessonScreen> {
     });
   }
 
-  Future<void> _updateLessonProgress(String lessonId, String activity, bool completed) async {
+
+Future<void> _updateLessonProgress(String lessonId, String activity, bool completed) async {
   final userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) return;
 
-  final progressQuery = await FirebaseFirestore.instance
-      .collection('user_lesson_progress')
-      .where('userId', isEqualTo: userId)
-      .where('lessonId', isEqualTo: lessonId)
-      .limit(1)
-      .get();
-
-  final docRef = progressQuery.docs.isNotEmpty
-      ? progressQuery.docs.first.reference
-      : FirebaseFirestore.instance.collection('user_lesson_progress').doc();
+  // Tạo docId duy nhất cho mỗi user-lesson
+  final docId = '${userId}_$lessonId';
+  final docRef = FirebaseFirestore.instance.collection('user_lesson_progress').doc(docId);
 
   await FirebaseFirestore.instance.runTransaction((transaction) async {
-    if (progressQuery.docs.isEmpty) {
-      // Tạo mới khi chưa có dữ liệu tiến độ
+    final snapshot = await transaction.get(docRef);
+
+    if (!snapshot.exists) {
+      // Nếu chưa tồn tại, tạo mới
       transaction.set(docRef, {
         'userId': userId,
         'lessonId': lessonId,
@@ -78,27 +74,20 @@ class _LessonScreenState extends State<LessonScreen> {
         'lastUpdatedAt': FieldValue.serverTimestamp(),
       });
     } else {
-      // Cập nhật chỉ khi trạng thái hiện tại của hoạt động là chưa hoàn thành
-      final progressData = progressQuery.docs.first.data();
-      final isCurrentlyCompleted = progressData['${activity}Completed'] as bool? ?? false;
+      // Nếu đã tồn tại, chỉ cập nhật nếu activity chưa completed
+      final data = snapshot.data() as Map<String, dynamic>;
+      final isCurrentlyCompleted = data['${activity}Completed'] as bool? ?? false;
 
-      if (!isCurrentlyCompleted) {
-        final updatedProgress = {
-          'vocabularyCompleted': activity == 'vocabulary' ? completed : progressData['vocabularyCompleted'],
-          'listeningCompleted': activity == 'listening' ? completed : progressData['listeningCompleted'],
-          'speakingCompleted': activity == 'speaking' ? completed : progressData['speakingCompleted'],
-          'quizCompleted': activity == 'quiz' ? completed : progressData['quizCompleted'],
+      if (!isCurrentlyCompleted && completed) {
+        transaction.update(docRef, {
+          '${activity}Completed': true,
           'lastUpdatedAt': FieldValue.serverTimestamp(),
-        };
-        // Chỉ cập nhật trường của hoạt động hiện tại nếu 'completed' là true
-        if (completed) {
-          final updateField = <String, dynamic>{'${activity}Completed': true, 'lastUpdatedAt': FieldValue.serverTimestamp()};
-          transaction.update(docRef, updateField);
-        }
+        });
       }
     }
   });
 }
+
 
   double _calculateLessonProgress(String lessonId, Map<String, Map<String, bool>> progressMap) {
     if (progressMap.containsKey(lessonId)) {
@@ -323,14 +312,15 @@ class _LessonScreenState extends State<LessonScreen> {
                                                           ),
                                                         );
 
-                                                        // Xử lý kết quả trả về khi LessonOverview bị pop (có thể không cần thiết nếu đã sử dụng onLessonOverviewPop)
-                                                        if (result != null && result is Map<String, bool>) {
-                                                          print("Tiến độ trả về từ LessonOverview (pop): $result");
-                                                          // Duyệt qua map result và cập nhật tiến độ cho từng hoạt động
-                                                          result.forEach((activity, isCompleted) {
-                                                            _updateLessonProgress(lesson.id, activity, isCompleted);
-                                                          });
-                                                        }
+                                                        // // Xử lý kết quả trả về khi LessonOverview bị pop (có thể không cần thiết nếu đã sử dụng onLessonOverviewPop)
+                                                        // if (result != null && result is Map<String, bool>) {
+                                                        //   print("Tiến độ trả về từ LessonOverview (pop): $result");
+                                                        //   // Duyệt qua map result và cập nhật tiến độ cho từng hoạt động
+                                                        //   result.forEach((activity, isCompleted) {
+                                                        //     _updateLessonProgress(lesson.id, activity, isCompleted);
+                                                        //   });
+                                                        // }
+                                                        
                                                       },
                                                       style: ElevatedButton.styleFrom(
                                                         foregroundColor: Colors.white,
