@@ -1,6 +1,6 @@
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:total_english/screens/verification_code.dart';
 import 'package:total_english/widgets/acc_textfield.dart';
 import 'package:total_english/widgets/custom_button.dart';
 
@@ -21,6 +21,18 @@ class _ForgotPasswordState extends State<ForgotPassword> {
       _emailFocusNode.dispose();
       super.dispose();
     }
+
+  //kiểm tra email đã đăng ký chưa?
+  Future<bool> checkEmailExists(String email) async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .where('email', isEqualTo: email)
+      .limit(1)
+      .get();
+
+  return snapshot.docs.isNotEmpty;
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -112,16 +124,34 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             const SizedBox(height: 40),
 
             CustomButton(
-              text: "Confirm mail", 
-              onPressed: (){
-                Navigator.push(
-                  context, 
-                  MaterialPageRoute(
-                    builder: (context) => VerificationCode(email: _emailController.text.trim()), //Tránh lỗi có khoảng trắng
-                  )
-                );
+              text: "Confirm mail",
+              onPressed: () async {
+                final email = _emailController.text.trim();
+
+                if (email.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng nhập email')),
+                  );
+                  return;
+                }
+
+                try {
+                  // Nếu không có lỗi ở đây thì email chắc chắn đã tồn tại
+                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+                  
+                } catch (e) {
+                  print('Lỗi khi gửi reset email: $e');
+
+                  // Lúc này mới là email không tồn tại
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Email chưa được đăng ký.')),
+                  );
+                }
               }
+
             )
+
           ],
         ),
     );

@@ -1,10 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
 import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
+
 import 'package:total_english/screens/main_screen.dart';
 import 'package:total_english/screens/new_password.dart';
+
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -15,6 +18,25 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   String _selectedLanguage = "vi";
+
+//   User? _currentUser;
+//   final AuthService _authService = AuthService();
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadCurrentUser();
+//   }
+
+//   Future<void> _loadCurrentUser() async {
+//     final user = await _authService.getCurrentUser();
+//     if (mounted) {
+//       setState(() {
+//         _currentUser = user;
+//       });
+//     }
+//   }
+
 
   void _showLanguagePicker() {
     showModalBottomSheet(
@@ -59,6 +81,40 @@ class _AccountScreenState extends State<AccountScreen> {
     return _selectedLanguage == "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English";
   }
 
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Xác nhận đăng xuất"),
+          content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Huỷ"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+
+                await _authService.signOut();
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+              child: const Text("Đăng xuất"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,6 +144,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               child: Row(
                 children: [
+
                   const CircleAvatar(
                     radius: 30,
                     backgroundImage: AssetImage('assets/avatar.jpg'),
@@ -104,6 +161,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         Text("Chuyển tài khoản",
                             style: TextStyle(fontSize: 14, color: Colors.black54)),
                       ],
+
                     ),
                   ),
                   IconButton(
@@ -132,6 +190,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   );
                 },
               ),
+
               _divider(),
               _buildListTile(
                 icon: Icons.lock_outline,
@@ -143,6 +202,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         builder: (context) => const NewPassword()),
                   );
                 },
+
               ),
             ]),
             const SizedBox(height: 16),
@@ -158,6 +218,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   );
                 },
               ),
+
               _divider(),
               _buildListTile(
                 icon: Icons.language,
@@ -171,6 +232,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ],
                 ),
                 onTap: _showLanguagePicker,
+
               ),
               _divider(),
               _buildListTile(
@@ -189,10 +251,13 @@ class _AccountScreenState extends State<AccountScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                //onPressed: _showLogoutDialog,
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[200],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
+
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
@@ -200,6 +265,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 child: const Text(
                   "Đăng xuất",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+
                 ),
               ),
             ),
@@ -288,3 +354,4 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 }
+

@@ -1,15 +1,19 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-
         title: const Center(
           child: Column(
             children: [
@@ -28,98 +32,127 @@ class NotificationScreen extends StatelessWidget {
             ],
           ),
         ),
-
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () {
-              // TODO: Handle edit action
+              // TODO: Handle edit action (ví dụ: đánh dấu đã đọc tất cả)
             },
           ),
         ],
-
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: currentUser == null
+          ? const Center(child: Text('Bạn chưa đăng nhập.'))
+          : StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('notifications')
+                  .where('userId', isEqualTo: currentUser.uid)
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Đã xảy ra lỗi khi tải thông báo.'));
+                }
 
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Thay đổi thành stretch để các container thông báo có thể căn giữa
-          children: [
-            const SizedBox(height: 20.0),
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            // Thông báo 1
-            Container(
-              padding: const EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4.0,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.local_fire_department_outlined, color: Colors.orange),
-                  SizedBox(width: 10.0),
-                  Expanded(
+                if (snapshot.data!.docs.isEmpty) {
+                  return const Center(
                     child: Text(
-                      'Bạn sắp để mất chuỗi 2 ngày streak.',
-                      style: TextStyle(fontSize: 16.0),
+                      'Không có thông báo nào.',
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
-              ),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: snapshot.data!.docs.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 16.0),
+                  itemBuilder: (context, index) {
+                    final notificationData =
+                        snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                    final notificationType = notificationData['type'] as String?;
+                    final message = notificationData['message'] as String?;
+                    final createdAt = notificationData['createdAt'] as Timestamp?;
+                    final streakDays = notificationData['streakDays'] as int?;
+
+                    IconData? icon;
+                    Color? iconColor;
+
+                    switch (notificationType) {
+                      case 'reminder':
+                        icon = Icons.notifications_active_outlined;
+                        iconColor = Colors.blue;
+                        break;
+                      case 'streak_achieved':
+                        icon = FontAwesomeIcons.fire;
+                        iconColor = const Color(0xFFD36EE5);
+                        break;
+                      case 'streak_warning':
+                        icon = Icons.local_fire_department_outlined;
+                        iconColor = Colors.orange;
+                        break;
+                      case 'streak_lost':
+                        icon = Icons.broken_image_outlined;
+                        iconColor = Colors.grey;
+                        break;
+                      case 'new_content':
+                        icon = Icons.new_releases_outlined;
+                        iconColor = Colors.green;
+                        break;
+                      default:
+                        icon = Icons.info_outline;
+                        iconColor = Colors.grey;
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10.0),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4.0,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(icon, color: iconColor),
+                          const SizedBox(width: 10.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  message ?? 'Không có nội dung',
+                                  style: const TextStyle(fontSize: 16.0),
+                                ),
+                                if (streakDays != null && notificationType == 'streak_achieved')
+                                  Text(
+                                    'Bạn đã đạt được chuỗi $streakDays ngày học tập!',
+                                    style: const TextStyle(fontSize: 14.0, color: Colors.black87),
+                                  ),
+                                if (createdAt != null)
+                                  Text(
+                                    DateFormat('HH:mm dd/MM/yyyy')
+                                        .format(createdAt.toDate().toLocal()),
+                                    style: const TextStyle(color: Colors.grey, fontSize: 12.0),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-
-            const SizedBox(height: 16.0),
-
-            // Thông báo 2
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.0),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4.0,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                children: [
-                  Icon(FontAwesomeIcons.fire, color: Color(0xFFD36EE5)),
-                  SizedBox(width: 10.0),
-                  Expanded(
-                    child: Text(
-                      "Bạn đang có chuỗi 4 ngày học tập!",
-                      style: TextStyle(fontSize: 16.0),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16.0),
-            // Nếu không có thông báo
-
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'Không có thông báo nào khác.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
-

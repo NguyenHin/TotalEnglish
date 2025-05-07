@@ -1,420 +1,321 @@
 import 'package:flutter/material.dart';
+import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/widgets/header_lesson.dart';
-import 'dart:async';
-import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Định nghĩa model cho một cặp từ và ảnh
+class MatchingPair {
+  final String word;
+  final String imagePath;
+
+  MatchingPair({required this.word, required this.imagePath});
+}
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key});
+  final String lessonId;
+  final Function(String activity, bool isCompleted)? onCompleted; // Thêm callback onCompleted
+
+  const QuizScreen({super.key, required this.lessonId, this.onCompleted});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateMixin {
-  int _currentQuestionIndex = 0;
-  int _correctAnswers = 0;
-  bool _quizFinished = false;
-  bool _answerSelected = false;
-  Duration _elapsedTime = Duration.zero;
-  Timer? _timer;
-  AnimationController? _animationController;
-  Animation<double>? _scaleAnimation;
-  final List<Map<String, Object>> _questions = const [
-    {
-      'questionText': '1. What is your name?',
-      'answers': [
-        {'text': 'A. My name is John.', 'isCorrect': true},
-        {'text': 'B. His name is John.', 'isCorrect': false},
-        {'text': 'C. Her name is John.', 'isCorrect': false},
-      ],
-    },
-    {
-      'questionText': '2. How old are you?',
-      'answers': [
-        {'text': 'A. I am five years old.', 'isCorrect': false},
-        {'text': 'B. I am seven years old.', 'isCorrect': true},
-        {'text': 'C. She is seven years old.', 'isCorrect': false},
-      ],
-    },
-    {
-      'questionText': '3. Where are you from?',
-      'answers': [
-        {'text': 'A. I am from Vietnam.', 'isCorrect': true},
-        {'text': 'B. He is from Vietnam.', 'isCorrect': false},
-        {'text': 'C. They are from Vietnam.', 'isCorrect': false},
-      ],
-    },
-    {
-      'questionText': '4. What do you like to do?',
-      'answers': [
-        {'text': 'A. I like playing football.', 'isCorrect': true},
-        {'text': 'B. He likes playing football.', 'isCorrect': false},
-        {'text': 'C. They like playing football.', 'isCorrect': false},
-      ],
-    },
-    {
-      'questionText': '5. Nice to meet you.',
-      'answers': [
-        {'text': 'A. Nice to meet you too.', 'isCorrect': true},
-        {'text': 'B. Goodbye.', 'isCorrect': false},
-        {'text': 'C. See you later.', 'isCorrect': false},
-      ],
-    },
-  ];
+class _QuizScreenState extends State<QuizScreen> {
+  List<dynamic> _quizItems = []; // Danh sách các mục (từ hoặc ảnh) trong trò chơi
+  List<int?> _currentlyFlippedIndices = [null, null]; // Danh sách index của hai ô đang được lật
+  List<bool> _isCardFlipped = []; // Trạng thái lật của từng ô
+  List<bool> _isCardMatched = []; // Trạng thái khớp của từng ô
+  bool _isQuizOver = false; // Trạng thái trò chơi đã kết thúc
+  bool _isLoadingData = true; // Trạng thái đang tải dữ liệu
+  String _loadingErrorMessage = ''; // Thông báo lỗi khi tải dữ liệu
+
   @override
   void initState() {
     super.initState();
-    _startTimer();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _animationController!, curve: Curves.easeInOut),
-    );
+    _loadQuizVocabulary(widget.lessonId);
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _animationController?.dispose();
-    super.dispose();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      setState(() {
-        _elapsedTime = _elapsedTime + const Duration(milliseconds: 100);
-      });
+  // Tải danh sách từ vựng cho quiz từ Firestore
+  Future<void> _loadQuizVocabulary(String lessonId) async {
+    setState(() {
+      _isLoadingData = true;
+      _loadingErrorMessage = '';
     });
-  }
+    try {
+      final vocabularySnapshot = await FirebaseFirestore.instance
+          .collection('lessons')
+          .doc(lessonId)
+          .collection('vocabulary')
+          .get();
 
-  String _formatTime(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
-  }
+      final List<MatchingPair> vocabularyPairs = vocabularySnapshot.docs
+          .map((doc) => MatchingPair(
+                word: doc.data()['word'] as String? ?? '',
+                imagePath: doc.data()['imageURL'] as String? ?? '',
+              ))
+          .where((pair) => pair.word.isNotEmpty && pair.imagePath.isNotEmpty)
+          .toList();
 
-  void _answerQuestion(bool isCorrect) {
-    if (!_answerSelected) {
+      vocabularyPairs.shuffle();
+      final selectedPairs = vocabularyPairs.take(10).toList();
+
+      _quizItems = [];
+      for (final pair in selectedPairs) {
+        _quizItems.add({'type': 'word', 'value': pair.word, 'match': pair});
+        _quizItems.add({'type': 'image', 'value': pair.imagePath, 'match': pair});
+      }
+      _quizItems.shuffle();
+
+      _isCardFlipped = List.generate(_quizItems.length, (_) => false);
+      _isCardMatched = List.generate(_quizItems.length, (_) => false);
+      _isQuizOver = false;
+      _currentlyFlippedIndices = [null, null];
+
       setState(() {
-        _answerSelected = true;
-        if (isCorrect) {
-          _correctAnswers++;
-          _showSnackBar('✅ Correct!', isCorrect: true);
-          _animateCorrectAnswer();
+        _isLoadingData = false;
+      });
+    } catch (error) {
+      setState(() {
+        _isLoadingData = false;
+        _loadingErrorMessage = "Lỗi tải dữ liệu quiz: $error";
+      });
+    }
+  }
+
+  // Làm mới trò chơi
+  void _resetQuiz() {
+    _loadQuizVocabulary(widget.lessonId);
+  }
+
+  // Xử lý sự kiện lật một ô
+  void _handleCardTap(int index) {
+    if (!_isCardFlipped[index] &&
+        _currentlyFlippedIndices[1] == null &&
+        !_isCardMatched[index] &&
+        !_isQuizOver &&
+        !_isLoadingData) {
+      setState(() {
+        _isCardFlipped[index] = true;
+        if (_currentlyFlippedIndices[0] == null) {
+          _currentlyFlippedIndices[0] = index;
         } else {
-          _showSnackBar('❌ Incorrect!', isCorrect: false);
+          _currentlyFlippedIndices[1] = index;
+          // Delay ngắn trước khi kiểm tra khớp
+          Future.delayed(const Duration(milliseconds: 300), _checkMatch);
         }
       });
     }
   }
-  void _animateCorrectAnswer() {
-    _animationController?.reset();
-    _animationController?.forward();
+
+  // Kiểm tra xem hai ô đã lật có khớp nhau không
+  void _checkMatch() {
+    final firstIndex = _currentlyFlippedIndices[0];
+    final secondIndex = _currentlyFlippedIndices[1];
+
+    if (firstIndex != null && secondIndex != null) {
+      final firstItem = _quizItems[firstIndex];
+      final secondItem = _quizItems[secondIndex];
+
+      if (firstItem['match'] == secondItem['match']) {
+        // Tìm thấy cặp khớp
+        setState(() {
+          _isCardMatched[firstIndex] = true;
+          _isCardMatched[secondIndex] = true;
+          _currentlyFlippedIndices = [null, null];
+          if (_isCardMatched.every((matched) => matched)) {
+            _isQuizOver = true;
+            updateStreak(); //update streak khi hoan thanh
+            // **Vẫn không gọi onCompleted ở đây**
+          }
+        });
+      } else {
+        // Không khớp, lật lại sau một khoảng thời gian
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          setState(() {
+            _isCardFlipped[firstIndex] = false;
+            _isCardFlipped[secondIndex] = false;
+            _currentlyFlippedIndices = [null, null];
+          });
+        });
+      }
+    }
   }
 
-  void _showSnackBar(String message, {required bool isCorrect}) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white)),
-        duration: const Duration(milliseconds: 1200),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: isCorrect ? Colors.green[400] : Colors.red[400],
+  // Xây dựng giao diện cho một ô
+  Widget _buildQuizCard(BuildContext context, int index) {
+    return GestureDetector(
+      onTap: () => _handleCardTap(index),
+      child: Card(
         elevation: 4,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: _isCardMatched[index]
+              ? const SizedBox.shrink(key: ValueKey('matched'))
+              : _isCardFlipped[index]
+                  ? Container(
+                      key: ValueKey('flipped-$index'),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Center(
+                        child: _quizItems[index]['type'] == 'word'
+                            ? Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: FittedBox(
+                                  child: Text(
+                                    _quizItems[index]['value'],
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Image.network(
+                                  _quizItems[index]['value'],
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Center(child: Icon(Icons.image_not_supported)),
+                                ),
+                              ),
+                      ),
+                    )
+                  : Container(
+                      key: ValueKey('unflipped-$index'),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[200],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(child: Icon(Icons.question_mark, color: Colors.white, size: 30)),
+                    ),
+        ),
       ),
     );
-  }
-
-  void _nextQuestion() {
-    setState(() {
-      _answerSelected = false;
-      if (_currentQuestionIndex < _questions.length - 1) {
-        _currentQuestionIndex++;
-      } else {
-        _quizFinished = true;
-        _timer?.cancel();
-      }
-    });
-  }
-
-  void _resetQuiz() {
-    setState(() {
-      _currentQuestionIndex = 0;
-      _correctAnswers = 0;
-      _quizFinished = false;
-      _answerSelected = false;
-      _elapsedTime = Duration.zero;
-      _startTimer();
-    });
-  }
-  String _getCongratulatoryMessage() {
-    double percentage = _correctAnswers / _questions.length;
-    if (percentage >= 0.8) {
-      return '✨ Tuyệt vời! Bạn đã làm rất tốt! ✨';
-    } else if (percentage >= 0.5) {
-      return '👍 Chúc mừng bạn! Hãy cố gắng hơn nữa nhé! 👍';
-    } else {
-      return '💪 Đừng lo lắng! Hãy ôn tập và thử lại nhé! 💪';
-    }
-  }
-
-  TextStyle _getCongratulatoryTextStyle() {
-    double percentage = _correctAnswers / _questions.length;
-    if (percentage >= 0.8) {
-      return const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        fontStyle: FontStyle.italic,
-        color: Colors.amber,
-      );
-    } else if (percentage >= 0.5) {
-      return const TextStyle(
-        fontSize: 19,
-        fontWeight: FontWeight.w600,
-        color: Colors.lightBlue,
-      );
-    } else {
-      return const TextStyle(
-        fontSize: 18,
-        color: Colors.orangeAccent,
-      );
-    }
-  }
-
-  Color _getScoreColor() {
-    double percentage = _correctAnswers / _questions.length;
-    if (percentage >= 0.7) {
-      return Colors.green[600]!;
-    } else {
-      return Colors.red[600]!;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_quizFinished) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF9FAFE),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return WillPopScope(
+      onWillPop: () async {
+        if (widget.onCompleted != null) {
+          widget.onCompleted!('quiz', _isQuizOver); // Gọi với true nếu đã hoàn thành
+        }
+        return true;
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Stack(
             children: [
-              const HeaderLesson(
-                title: 'Quiz Finished!',
-                color: Color(0xFF89B3D4),
-              ),
-              const SizedBox(height: 30),
-              Text(
-                'Your score:',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$_correctAnswers / ${_questions.length}',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: _getScoreColor(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 55),
+                    const HeaderLesson(
+                      title: 'Quiz',
+                      color: Color(0xFFE0A96D),
+                    ),
+                    const SizedBox(height: 20),
+                    if (_isLoadingData)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_loadingErrorMessage.isNotEmpty)
+                      Center(child: Text(_loadingErrorMessage, style: const TextStyle(color: Colors.red)))
+                    else
+                      Expanded(
+                        child: GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                          ),
+                          itemCount: _quizItems.length,
+                          itemBuilder: (context, index) => _buildQuizCard(context, index),
+                        ),
+                      ),
+                    if (_isQuizOver)
+                      Column(
+                        children: [
+                          const Text(
+                            '✨ Chúc mừng bạn đã hoàn thành! ✨',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _isLoadingData ? null : _resetQuiz,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF89B3D4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Chơi lại',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              ElevatedButton(
+                                onPressed: () {
+                                  if (widget.onCompleted != null) {
+                                    widget.onCompleted!('quiz', true);
+                                  }
+                                  Navigator.pop(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF89B3D4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Về bài học',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: _isLoadingData ? null : _resetQuiz,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF89B3D4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: const Text(
+                          'Chơi lại',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 15),
-              Text(
-                _getCongratulatoryMessage(),
-                textAlign: TextAlign.center,
-                style: _getCongratulatoryTextStyle(),
-              ),
-              const SizedBox(height: 15),
-              Text(
-                'Time taken: ${_formatTime(_elapsedTime)}',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _resetQuiz,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF90DA95),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 3,
+              Positioned(
+                top: 30,
+                left: 10,
+                child: IconButton(
+                  onPressed: () {
+                    if (widget.onCompleted != null) {
+                      widget.onCompleted!('quiz', _isQuizOver); // Gọi với true nếu đã hoàn thành
+                    }
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.chevron_left, size: 28),
                 ),
-                child: const Text('Restart Quiz', style: TextStyle(fontSize: 18)),
-              ),
-              const SizedBox(height: 15),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Back to Lessons', style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
               ),
             ],
           ),
-        ),
-      );
-    }
-    final currentQuestion = _questions[_currentQuestionIndex];
-    final answers = currentQuestion['answers'] as List<Map<String, Object>>;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFE),
-      body: Stack(
-        children: [
-          _buildBackButton(context),
-          _buildHeaderLesson(),
-          Positioned(
-            top: 180,
-            left: 20,
-            right: 20,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(25.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    currentQuestion['questionText'] as String,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF37474F),
-                    ),
-                  ),
-                  const SizedBox(height: 35),
-                  ...answers.map((answer) {
-                    return ScaleTransition(
-                      scale: _scaleAnimation!,
-                      child: _buildAnswerButton(
-                        context,
-                        answer['text'].toString().substring(3).trim(),
-                        isCorrect: answer['isCorrect'] as bool,
-                        onPressed: _answerSelected
-                            ? null
-                            : () => _answerQuestion(answer['isCorrect'] as bool),
-                      ),
-                    );
-                  }).toList(),
-                  const SizedBox(height: 25),
-                  if (_answerSelected)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: _nextQuestion,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFAC10D5),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: const Text('Next', style: TextStyle(fontSize: 16)),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: 60,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                _formatTime(_elapsedTime),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF455A64)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Nút quay lại
-  Widget _buildBackButton(BuildContext context) {
-    return Positioned(
-      top: 50,
-      left: 10,
-      child: IconButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 26, color: Color(0xFF546E7A)),
-      ),
-    );
-  }
-
-  // Tiêu đề bài học
-  Widget _buildHeaderLesson() {
-    return const Positioned(
-      top: 100,
-      left: 20,
-      right: 20,
-      child: HeaderLesson(
-        title: 'Quiz Time!',
-        color: Color(0xFF89B3D4),
-      ),
-    );
-  }
-  // Button đáp án
-  Widget _buildAnswerButton(
-      BuildContext context,
-      String text, {
-        bool isCorrect = false,
-        VoidCallback? onPressed,
-      }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-            side: const BorderSide(color: Color(0xFF80CBC4)),
-          ),
-          elevation: 2,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: Color(0xFF37474F)),
-                textAlign: TextAlign.left,
-              ),
-            ),
-            if (_answerSelected && onPressed == null)
-              Icon(
-                isCorrect ? Icons.check_circle_outline_rounded : Icons.cancel_outlined,
-                color: isCorrect ? Colors.green[400] : Colors.red[400],
-              ),
-          ],
         ),
       ),
     );

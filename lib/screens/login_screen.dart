@@ -1,6 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/forgot_password.dart';
+import 'package:total_english/screens/home_screen.dart';
 import 'package:total_english/screens/signup_screen.dart';
+import 'package:total_english/services/auth_services.dart';
 import 'package:total_english/widgets/custom_button.dart';
 import 'package:total_english/widgets/custom_textfield.dart';
 import 'package:total_english/widgets/language_switcher.dart';
@@ -20,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen>{
   final FocusNode emailFocusNode = FocusNode();
   final FocusNode passwordFocusNode = FocusNode();
 
+  int failedLoginAttempts = 0; //đếm số lần đăng nhập
+
   @override
   void dispose() {
     emailController.dispose();
@@ -29,7 +34,11 @@ class _LoginScreenState extends State<LoginScreen>{
     super.dispose();
   }
 
-  
+  bool isValidEmail(String email) {
+  final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+  return emailRegex.hasMatch(email);
+}
+
 
   
   @override
@@ -104,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen>{
         child: SizedBox(
           width: screenWidth * 0.87,
           child: CustomTextField(
-            hintText: 'Username or Email',
+            hintText: 'Email',
             icon: Icons.email,
             controller: emailController,
           ),
@@ -156,15 +165,58 @@ class _LoginScreenState extends State<LoginScreen>{
           width: screenWidth * 0.87,
           child: CustomButton(
             text: 'Login',
-            onPressed: () {
-              // xử lý đăng nhập
-            },
+            onPressed: () async {
+  try {
+    final credential = await AuthService().signInWithEmail(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+
+    if (credential != null) {
+      // Kiểm tra trạng thái xác minh email
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.emailVerified) {
+        // Nếu email đã được xác minh, chuyển đến màn hình chính
+        failedLoginAttempts = 0; // reset
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        // Nếu email chưa được xác minh, thông báo cho người dùng
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng xác minh email của bạn.')),
+        );
+        // Bạn có thể gửi lại email xác minh nếu cần
+        await user?.sendEmailVerification();
+      }
+    } else {
+      throw Exception('Đăng nhập thất bại');
+    }
+  } catch (e) {
+    failedLoginAttempts++;
+
+    String message = 'Email hoặc mật khẩu không đúng';
+    if (failedLoginAttempts >= 3) {
+      message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+}
+
+
+
+
+
           ),
         ),
       ),
 
 
-          // ---- OR ---- line
+      // ---- OR ---- line
       Positioned(
         top: MediaQuery.of(context).size.height * 0.72,
         left: MediaQuery.of(context).size.width * 0.13,
@@ -206,11 +258,35 @@ class _LoginScreenState extends State<LoginScreen>{
         top: MediaQuery.of(context).size.height * 0.75,
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
-          onGoogleTap: () {
-            print("Google login tapped");
+          onGoogleTap: () async {
+            await AuthService().signOut(); // <- Thêm dòng này
+
+            User? user = await AuthService().signInWithGoogle();
+            if (user != null && context.mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đăng nhập thất bại')),
+              );
+            }
           },
-          onFacebookTap: () {
-            print("Facebook login tapped");
+
+          onFacebookTap: () async {
+            User? user = await AuthService().signInWithFacebook();
+            if (user != null && context.mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+            } else {
+              // Hiện thông báo lỗi nếu cần
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đăng nhập bằng Facebook thất bại')),
+              );
+            }
           },
         ),
       ),

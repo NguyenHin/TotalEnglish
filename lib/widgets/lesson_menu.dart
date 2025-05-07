@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:total_english/screens/listening_screen.dart';
 import 'package:total_english/screens/quiz_screen.dart';
 import 'package:total_english/screens/speaking_screen.dart';
-import 'package:total_english/screens/vocabulary_screen.dart';  // Import màn hình Từ vựng
+import 'package:total_english/screens/vocabulary_screen.dart'; // Import màn hình Từ vựng
 
 class LessonMenu extends StatelessWidget {
-  final String lessonTitle;
-
-  LessonMenu({
+  final String lessonId;
+  final Function(String activity, bool isCompleted)? onActivityCompleted;
+  
+  const LessonMenu({
     super.key,
-    required this.lessonTitle,
+    required this.lessonId,  // Chỉ cần truyền lessonId
+    this.onActivityCompleted,
   });
 
   @override
@@ -17,45 +19,65 @@ class LessonMenu extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 8.0),
-          child: Text(
-            lessonTitle,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Kadwa',
-              color: Colors.black54,
-            ),
-          ),
-        ),
         _buildMenuButton(
           context,
           "Từ vựng",
           Icons.library_books,
           Color(0xFFF2D16C),
-          VocabularyScreen(),  // Chuyển đến màn hình VocabularyScreen
+          VocabularyScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted");  // Log khi callback được gọi
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ),
         ),
         _buildMenuButton(
           context,
           "Luyện nghe",
           Icons.headphones,
           Color(0xFFBFA8E7),
-          ListeningScreen(),  // Chuyển đến màn hình ListeningScreen
+          ListeningScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ), // Chuyển đến màn hình ListeningScreen
         ),
         _buildMenuButton(
           context,
           "Luyện nói",
           Icons.mic,
           Color(0xFF95E499),
-          SpeakingScreen(),  // Chuyển đến màn hình SpeakingScreen
+          SpeakingScreen(
+    lessonId: lessonId,
+    onCompleted: (activity, isCompleted) {
+      print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
+      if (onActivityCompleted != null) {
+        onActivityCompleted!(activity, isCompleted);
+      }
+    },
+  ), // Chuyển đến màn hình SpeakingScreen
         ),
         _buildMenuButton(
           context,
           "Bài kiểm tra",
           Icons.assignment,
           Color(0xFF89B3D4),
-          QuizScreen(),  // Chuyển đến màn hình QuizScreen
+         QuizScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ), // Chuyển đến màn hình QuizScreen
         ),
       ],
     );
@@ -77,13 +99,21 @@ class LessonMenu extends StatelessWidget {
         ),
         child: InkWell(  // Sử dụng InkWell để xử lý sự kiện nhấn
           borderRadius: BorderRadius.circular(12.0),
-          onTap: () {
-            // Khi nhấn vào nút, sẽ chuyển đến màn hình tương ứng
-            Navigator.push(
+          onTap: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => targetScreen),
             );
+
+            if (result is Map && onActivityCompleted != null) {
+              final activity = result['completedActivity'];
+              final isCompleted = result['isCompleted'] ?? false;
+              if (activity != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            }
           },
+
           child: Container(  // Thêm container để chứa toàn bộ giao diện của nút
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
