@@ -45,4 +45,4 @@ app.*.map.json
 /android/app/release
 
 # Firebase service account key - đừng đẩy file này lên Git!
-tools/firebase/serviceAccountKey.json
+assets/serviceAccountKey.json
