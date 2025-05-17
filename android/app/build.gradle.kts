@@ -49,6 +49,7 @@ flutter {
 dependencies {
   // Import the Firebase BoM
   implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+
   // 🔔 Firebase Cloud Messaging
   implementation("com.google.firebase:firebase-messaging") // ✅ Kotlin-style
   // TODO: Add the dependencies for Firebase products you want to use

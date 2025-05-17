@@ -53,7 +53,6 @@ dependencies:
   http: ^1.4.0
   googleapis_auth: ^2.0.0
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -84,6 +83,7 @@ flutter:
     - assets/icon/bye.png
     - assets/icon/gg_light.png
     - assets/serviceAccountKey.json
+
 
 
 

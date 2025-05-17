@@ -4,9 +4,11 @@ import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
 import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
+
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/new_password.dart';
 import 'package:total_english/services/auth_services.dart'; // Đảm bảo đường dẫn đúng
+
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -34,6 +36,7 @@ class _AccountScreenState extends State<AccountScreen> {
       });
     }
   }
+
 
   void _showLanguagePicker() {
     showModalBottomSheet(
@@ -115,16 +118,19 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 25),
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFD3E6F6),
+
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -211,6 +217,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => const NewPassword()),
+
                       );
                     },
                   ),
@@ -218,6 +225,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFD3E6F6),
@@ -258,10 +266,12 @@ class _AccountScreenState extends State<AccountScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _showLogoutDialog,
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[200],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
+
                       borderRadius: BorderRadius.circular(20)),
                 ),
                 child: const Text("Đăng xuất", style: TextStyle(fontSize: 16)),
@@ -280,3 +290,4 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 }
+

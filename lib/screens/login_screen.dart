@@ -210,6 +210,7 @@ class _LoginScreenState extends State<LoginScreen>{
                 );
               }
             }
+
           ),
         ),
       ),
@@ -258,6 +259,7 @@ class _LoginScreenState extends State<LoginScreen>{
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
           onGoogleTap: () async {
+
             await AuthService().signOut(); //Logout trước khi đăng nhập lại
 
             User? user = await AuthService().signInWithGoogle();

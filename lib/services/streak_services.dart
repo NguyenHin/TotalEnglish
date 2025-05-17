@@ -147,4 +147,3 @@ int weekNumber(DateTime date) {
   return date.weekOfYear;
 }
 
-

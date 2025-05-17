@@ -209,6 +209,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.22.0"
+
   firebase_messaging:
     dependency: "direct main"
     description:
@@ -233,6 +234,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.10.5"
+
   firebase_storage:
     dependency: "direct main"
     description:
@@ -334,6 +336,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+
   flutter_secure_storage:
     dependency: transitive
     description:
@@ -456,6 +459,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.12.4+4"
+
   googleapis_auth:
     dependency: "direct main"
     description:
@@ -472,6 +476,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+
   http_parser:
     dependency: transitive
     description:

@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/home_screen.dart';
@@ -35,7 +36,6 @@ Future<void> main () async {
 
   
   //OTPService.configOTP(); // Cấu hình OTPService khi ứng dụng khởi động
-
   
   runApp(const MyApp());
 }
@@ -79,6 +79,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 Future<void> _initializeNotifications() async {
   // Tạo channel trên Android (nếu có)
