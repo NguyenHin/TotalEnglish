@@ -12,6 +12,7 @@ class NotificationScreen extends StatelessWidget {
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Column(

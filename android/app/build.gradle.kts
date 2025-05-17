@@ -14,6 +14,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+
+        // ✅ Bật desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -46,7 +49,12 @@ flutter {
 dependencies {
   // Import the Firebase BoM
   implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+  // 🔔 Firebase Cloud Messaging
+  implementation("com.google.firebase:firebase-messaging") // ✅ Kotlin-style
   // TODO: Add the dependencies for Firebase products you want to use
   // When using the BoM, don't specify versions in Firebase dependencies
   // https://firebase.google.com/docs/android/setup#available-libraries
+  
+  coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
 }

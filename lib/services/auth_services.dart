@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
@@ -63,28 +65,42 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-  try {
-    print("📤 Bắt đầu đăng xuất Firebase");
+    try {
+      print("📤 Bắt đầu đăng xuất Firebase");
 
-    // Đăng xuất Firebase
-    await _auth.signOut();
+      // Đăng xuất Firebase
+      await _auth.signOut();
 
-    // Đăng xuất Google nếu đang đăng nhập bằng Google
-    final googleSignIn = GoogleSignIn();
-    if (await googleSignIn.isSignedIn()) {
-      await googleSignIn.signOut();
-      print("🔁 Đã signOut Google");
+      // Đăng xuất Google nếu đang đăng nhập bằng Google
+      final googleSignIn = GoogleSignIn();
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.signOut();
+        print("🔁 Đã signOut Google");
+      }
+
+      // Đăng xuất Facebook nếu cần
+      await FacebookAuth.instance.logOut();
+      print("🔁 Đã signOut Facebook");
+
+      print("✅ Đăng xuất thành công");
+    } catch (e) {
+      print("❌ Lỗi khi signOut: $e");
     }
-
-    // Đăng xuất Facebook nếu cần
-    await FacebookAuth.instance.logOut();
-    print("🔁 Đã signOut Facebook");
-
-    print("✅ Đăng xuất thành công");
-  } catch (e) {
-    print("❌ Lỗi khi signOut: $e");
   }
-}
 
+  Future<void> saveFCMTokenToFirestore(User user) async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
 
+    // Lấy token FCM của thiết bị
+    String? fcmToken = await messaging.getToken();
+
+    if (fcmToken != null) {
+      // Lưu token vào Firestore dưới document của user
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'fcmToken': fcmToken,
+      }, SetOptions(merge: true));
+      
+      print("FCM Token saved: $fcmToken");
+    }
+  }
 }
