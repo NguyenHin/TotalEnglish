@@ -166,50 +166,50 @@ class _LoginScreenState extends State<LoginScreen>{
           child: CustomButton(
             text: 'Login',
             onPressed: () async {
-  try {
-    final credential = await AuthService().signInWithEmail(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
+              try {
+                final credential = await AuthService().signInWithEmail(
+                  emailController.text.trim(),
+                  passwordController.text.trim(),
+                );
 
-    if (credential != null) {
-      // Kiểm tra trạng thái xác minh email
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null && user.emailVerified) {
-        // Nếu email đã được xác minh, chuyển đến màn hình chính
-        failedLoginAttempts = 0; // reset
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      } else {
-        // Nếu email chưa được xác minh, thông báo cho người dùng
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng xác minh email của bạn.')),
-        );
-        // Bạn có thể gửi lại email xác minh nếu cần
-        await user?.sendEmailVerification();
-      }
-    } else {
-      throw Exception('Đăng nhập thất bại');
-    }
-  } catch (e) {
-    failedLoginAttempts++;
+                if (credential != null) {
+                  // Kiểm tra trạng thái xác minh email
+                  User? user = FirebaseAuth.instance.currentUser;
+                  if (user != null && user.emailVerified) {
+                    // Nếu email đã được xác minh, chuyển đến màn hình chính
+                    failedLoginAttempts = 0; // reset
 
-    String message = 'Email hoặc mật khẩu không đúng';
-    if (failedLoginAttempts >= 3) {
-      message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
-    }
+                    // !!! Lấy fcmToken và lưu vào Firestore
+                    await AuthService().saveFCMTokenToFirestore(user);      
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-}
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    );
+                  } else {
+                    // Nếu email chưa được xác minh, thông báo cho người dùng
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng xác minh email của bạn.')),
+                    );
+                    // Bạn có thể gửi lại email xác minh nếu cần
+                    await user?.sendEmailVerification();
+                  }
+                } else {
+                  throw Exception('Đăng nhập thất bại');
+                }
+              } catch (e) {
+                failedLoginAttempts++;
 
+                String message = 'Email hoặc mật khẩu không đúng';
+                if (failedLoginAttempts >= 3) {
+                  message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
+                }
 
-
-
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              }
+            }
 
           ),
         ),
@@ -259,10 +259,15 @@ class _LoginScreenState extends State<LoginScreen>{
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
           onGoogleTap: () async {
-            await AuthService().signOut(); // <- Thêm dòng này
+
+            await AuthService().signOut(); //Logout trước khi đăng nhập lại
 
             User? user = await AuthService().signInWithGoogle();
             if (user != null && context.mounted) {
+
+              // !!! Lấy fcmToken và lưu vào Firestore
+              await AuthService().saveFCMTokenToFirestore(user);  
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -277,6 +282,10 @@ class _LoginScreenState extends State<LoginScreen>{
           onFacebookTap: () async {
             User? user = await AuthService().signInWithFacebook();
             if (user != null && context.mounted) {
+
+              // !!! Lấy fcmToken và lưu vào Firestore
+              await AuthService().saveFCMTokenToFirestore(user); 
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const HomeScreen()),

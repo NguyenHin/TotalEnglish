@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:total_english/services/notification_services.dart';
 import 'lesson_screen.dart';
 import 'streak_screen.dart';
 import 'notification_screen.dart';
@@ -21,6 +22,17 @@ class _HomeScreenState extends State<HomeScreen> {
     NotificationScreen(),
     AccountScreen(),  // Thêm màn hình tài khoản vào danh sách
   ];
+
+  
+@override
+void initState() {
+  super.initState();
+  Future.delayed(const Duration(seconds: 2), () async {
+    await checkAndSendStreakWarning(); // Gọi trực tiếp
+    await checkAndSendStudyReminder();
+  });
+}
+
 
   void _onTabTapped(int index) {
     setState(() {

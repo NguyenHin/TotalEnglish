@@ -48,8 +48,11 @@ dependencies:
   intl: ^0.20.2
   lottie: ^3.3.1
   week_of_year: ^2.2.0
-  # workmanager: ^0.5.2 
-  
+  firebase_messaging: ^15.2.5 
+  flutter_local_notifications: ^19.1.0
+  http: ^1.4.0
+  googleapis_auth: ^2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -79,6 +82,8 @@ flutter:
     - assets/icon/no_background.png
     - assets/icon/bye.png
     - assets/icon/gg_light.png
+    - assets/serviceAccountKey.json
+
 
 
 

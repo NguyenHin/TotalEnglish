@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:total_english/services/notification_services.dart';
 import 'package:week_of_year/date_week_extensions.dart';
 
 Future<void> updateStreak() async {
@@ -64,19 +65,46 @@ Future<void> updateStreak() async {
             });
             // 🔥 Gửi thông báo nếu đạt mốc đặc biệt
             if(newStreak % 5 == 0) {
-              await sendStreakNotification(userId: userId, streakDays: newStreak);
+ print('📨 Chuẩn bị gọi sendStreakNotification cho user: $userId, streak: $newStreak');
+              // Kiểm tra đã gửi chưa
+              final existingAchieved = await FirebaseFirestore.instance
+                  .collection('notifications')
+                  .where('userId', isEqualTo: userId)
+                  .where('type', isEqualTo: 'streak_achieved')
+                  .where('streakDays', isEqualTo: newStreak)
+                  .where('date', isEqualTo: today)
+                  .get();
+
+              if (existingAchieved.docs.isEmpty) {
+                await sendStreakNotification(userId: userId, streakDays: newStreak);
+              }
             }
           } else {
               // Hết ngày -> reset streak
               await streakDoc.update({
-                'currentStreak': 1,
+                'currentStreak': 0,
                 'lastStudiedAt': now,
                 'studiedDays': studiedDays,
               });
+              
               print('⚡ Reset currentStreak vì bỏ qua 1 ngày.');
+              // 👉 Kiểm tra đã gửi thông báo mất streak hôm nay chưa
+              final existingLost = await FirebaseFirestore.instance
+                  .collection('notifications')
+                  .where('userId', isEqualTo: userId)
+                  .where('type', isEqualTo: 'streak_lost')
+                  .where('streakDays', isEqualTo: currentStreak)
+                  .where('date', isEqualTo: today)
+                  .get();
+
+              if (existingLost.docs.isEmpty) {
+                // Gửi thông báo "Mất streak"
+                await sendStreakLostNotification(
+                  userId: userId,
+                  streakDays: currentStreak, // Sử dụng currentStreak trước khi reset
+                );
+              }
           }
-
-
           print('✅ Updated studiedDays: $studiedDays');
         } else {
           // Lần học đầu tiên
@@ -117,78 +145,5 @@ List<int> updateStudiedDaysList(List<dynamic> oldList, DateTime now) {
 
 int weekNumber(DateTime date) {
   return date.weekOfYear;
-}
-
-
-Future<void> sendStreakNotification({
-  required String userId,
-  required int streakDays,
-}) async {
-  final now = DateTime.now();
-
-  await FirebaseFirestore.instance.collection('notifications').add({
-    'userId' : userId,
-    'type': 'streak_achieved',
-    'message': 'Chúc mừng! Bạn đã đạt được chuỗi $streakDays ngày học tập liên tục!🎉🔥',
-    'streakDays': streakDays,
-    'createdAt': now,
-  });
-}
-
-Future<void> sendStreakWarningNotification({
-  required String userId,
-  required int currentStreak,
-}) async {
-  final now = DateTime.now();
-
-  await FirebaseFirestore.instance.collection('notifications').add({
-    'userId': userId,
-    'type': 'streak_warning',
-    'message': '⚠️ Bạn sắp mất chuỗi $currentStreak ngày. Hãy học ngay để duy trì chuỗi!🔥!',
-    'streakDays': currentStreak,
-    'createdAt': now,
-  });
-}
-
-Future<void> checkAndSendStreakWarning() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  final now = DateTime.now();
-  final today = DateFormat('yyyy-MM-dd').format(now);
-
-  // 👉 Chỉ thực hiện đúng lúc 23:00
-  if (now.hour != 23 || now.minute != 0) return;
-
-  final userId = user.uid;
-  final streakDoc = await FirebaseFirestore.instance.collection('streak').doc(userId).get();
-  if (!streakDoc.exists) return;
-
-  final data = streakDoc.data();
-  final lastStudiedAt = (data?['lastStudiedAt'] as Timestamp?)?.toDate();
-  final lastStudiedDate = lastStudiedAt != null
-      ? DateFormat('yyyy-MM-dd').format(lastStudiedAt)
-      : null;
-
-  if (lastStudiedDate == today) return;
-
-  // Kiểm tra đã gửi warning hôm nay chưa
-  final existingWarnings = await FirebaseFirestore.instance
-      .collection('notifications')
-      .where('userId', isEqualTo: userId)
-      .where('type', isEqualTo: 'streak_warning')
-      .where('date', isEqualTo: today)
-      .get();
-
-  if (existingWarnings.docs.isEmpty) {
-    final currentStreak = data?['currentStreak'] as int? ?? 0;
-
-    await sendStreakWarningNotification(
-      userId: userId,
-      currentStreak: currentStreak,
-    );
-
-    print('🔔 Gửi cảnh báo streak_warning cho user $userId');
-  }
 }
 
