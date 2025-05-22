@@ -265,12 +265,13 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (widget.onCompleted != null && !_isLessonCompleted) {
-          widget.onCompleted!('speaking', false);
+    return PopScope<bool>(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, bool? result) {
+        if (didPop && !_isLessonCompleted) {
+          widget.onCompleted?.call('speaking', false);
+          print("Đã gọi onCompleted khi user pop ở speaking.");
         }
-        return true;
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),

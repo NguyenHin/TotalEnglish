@@ -22,6 +22,8 @@ Future<void> sendStreakNotification({
     'read': false,
   });
 
+  await limitNotificationCount(userId);  // <-- Gọi giới hạn ở đây
+
   final fcmToken = await getUserFCMToken(userId);
   print('📱 FCM Token lấy được: $fcmToken'); //in log
   if (fcmToken != null) {
@@ -51,6 +53,8 @@ Future<void> sendStreakWarningNotification({
     'date': DateFormat('yyyy-MM-dd').format(now),
     'read': false,
   });
+
+  await limitNotificationCount(userId);  // <-- Gọi giới hạn ở đây
 
   // Lấy token FCM user để gửi push notification
   final fcmToken = await getUserFCMToken(userId);
@@ -121,6 +125,8 @@ Future<void> sendStudyReminderNotification({
     'read': false,
   });
 
+  await limitNotificationCount(userId);  // <-- Gọi giới hạn ở đây
+
   // Lấy token FCM của user
   final fcmToken = await getUserFCMToken(userId);
   if (fcmToken != null) {
@@ -185,6 +191,8 @@ Future<void> sendStreakLostNotification({
     'read': false,
   });
 
+  await limitNotificationCount(userId);  // <-- Gọi giới hạn ở đây
+
   final fcmToken = await getUserFCMToken(userId);
   if (fcmToken != null) {
     await sendPushNotificationWithHttpV1(
@@ -195,4 +203,22 @@ Future<void> sendStreakLostNotification({
   }
 }
 
+//hàm giới hạn 15 thông báo
+Future<void> limitNotificationCount(String userId, {int maxCount = 15}) async {
+  final notificationsRef = FirebaseFirestore.instance.collection('notifications');
 
+  final querySnapshot = await notificationsRef
+      .where('userId', isEqualTo: userId)
+      .orderBy('createdAt', descending: true)
+      .get();
+
+  final docs = querySnapshot.docs;
+
+  if (docs.length > maxCount) {
+    final docsToDelete = docs.sublist(maxCount);
+    for (final doc in docsToDelete) {
+      await notificationsRef.doc(doc.id).delete();
+      print('🗑️ Đã xóa thông báo cũ: ${doc.id}');
+    }
+  }
+}

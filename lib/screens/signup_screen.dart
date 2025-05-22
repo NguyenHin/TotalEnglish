@@ -116,18 +116,18 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 30),
                   AccTextfield(
-                    hintText: 'Password',
+                    hintText: 'Mật khẩu',
                     controller: _passwordController,
                   ),
                   const SizedBox(height: 30),
                   AccTextfield(
-                    hintText: 'Confirm Password',
+                    hintText: 'Xác nhận mật khẩu',
                     controller: _confirmController,
                   ),
                   const SizedBox(height: 40),
 
                   CustomButton(
-                    text: "Sign up",
+                    text: "Đăng ký",
                     onPressed: _signup,
                   ),
                   const SizedBox(height: 20),
@@ -238,7 +238,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _buildSubtitle() {
     return const Text(
-      "Create your Account",
+      "Tạo tài khoản của bạn",
       style: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w300,
