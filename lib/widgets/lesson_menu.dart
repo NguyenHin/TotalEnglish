@@ -66,7 +66,7 @@ class LessonMenu extends StatelessWidget {
         ),
         _buildMenuButton(
           context,
-          "Bài kiểm tra",
+          "Mini Game",
           Icons.assignment,
           Color(0xFF89B3D4),
          QuizScreen(

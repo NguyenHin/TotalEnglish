@@ -34,18 +34,36 @@ class _LessonOverviewState extends State<LessonOverview> {
     });
   }
 
+  Future<void> _onPop() async {
+    if (widget.onLessonOverviewPop != null) {
+      widget.onLessonOverviewPop!(_completedActivities);
+    }
+    Navigator.pop(context, _completedActivities);
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
-        resizeToAvoidBottomInset: false,
-        body: Stack(
-          children: [
-            _buildBackButton(context),
-            _buildLessonOverviewForm(),
-          ],
+    return PopScope(
+      canPop: false, // Chặn pop mặc định
+      onPopInvoked: (didPop) {
+        if (didPop) return; // Nếu đã pop rồi thì không làm gì
+
+        print("🎯 LessonOverview: PopScope bị gọi - đang gọi _onPop()");
+        _onPop(); // Tự gọi logic pop có result
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          backgroundColor: const Color(0xFFFFFFFF),
+          resizeToAvoidBottomInset: false,
+          body: Stack(
+            children: [
+              _buildBackButton(context),
+              _buildLessonOverviewForm(),
+            ],
+          ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/home_screen.dart';
+import 'package:total_english/services/streak_services.dart';
 //import 'package:total_english/services/otp_service.dart'; // Import OTPService
 
 // Khai báo RouteObserver
@@ -67,6 +68,11 @@ class MyApp extends StatelessWidget {
             User? user = FirebaseAuth.instance.currentUser;
 
             if (user != null) {
+              // Gọi hàm kiểm tra streak trước khi vào HomeScreen
+              checkAndResetStreakIfMissedDay().then((_) {
+                print('✅ Đã kiểm tra và reset streak nếu cần');
+              });
+              
               return const HomeScreen();
             } else {
               return const LoginScreen();

@@ -122,12 +122,13 @@ class _ListeningScreenState extends State<ListeningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (widget.onCompleted != null && !_isLessonCompleted) {
-          widget.onCompleted!('listening', false);
+    return PopScope<bool>(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, bool? result) {
+        if (didPop && !_isLessonCompleted) {
+          widget.onCompleted?.call('listening', false);
+          print("Đã gọi onCompleted khi user pop ở Listening.");
         }
-        return true;
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),

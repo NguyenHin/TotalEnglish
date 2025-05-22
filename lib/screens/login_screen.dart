@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/forgot_password.dart';
@@ -127,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen>{
         child: SizedBox(
           width: screenWidth * 0.87,
           child: CustomTextField(
-            hintText: 'Password',
+            hintText: 'Mật khẩu',
             icon: Icons.lock,
             controller: passwordController,
             isPassword: true,
@@ -147,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen>{
             );
           },
           child: const Text(
-            'Forgot Password?',
+            'Quên mật khẩu?',
             style: TextStyle(
               color: Colors.black54,
               fontSize: 14,
@@ -164,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen>{
         child: SizedBox(
           width: screenWidth * 0.87,
           child: CustomButton(
-            text: 'Login',
+            text: 'Đăng nhập',
             onPressed: () async {
               try {
                 final credential = await AuthService().signInWithEmail(
@@ -302,12 +304,14 @@ class _LoginScreenState extends State<LoginScreen>{
 
       // Sign up text
       Positioned(
-        top: screenHeight * 0.82,
+        //top: screenHeight * 0.82,
+        // Mới - an toàn hơn
+        top: min(screenHeight * 0.82, screenHeight - 60),
         left: screenWidth * 0.2,
         child: Row(
           children: [
             const Text(
-              "Don't have an account?",
+              "Bạn chưa có tài khoản?",
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(width: 5),
@@ -319,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen>{
                 );
               },
               child: const Text(
-                'Sign Up',
+                'Đăng ký',
                 style: TextStyle(
                   color: Colors.black54,
                   fontWeight: FontWeight.w500,

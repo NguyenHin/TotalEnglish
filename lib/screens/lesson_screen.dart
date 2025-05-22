@@ -102,6 +102,8 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
     return 0.0;
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -249,10 +251,12 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                             CircleAvatar(
                                               radius: 30,
                                               backgroundColor: color,
-                                              child: Icon(
-                                                icon,
-                                                color: Colors.white,
-                                                size: 26,
+                                              child: Center(
+                                                child: FaIcon(
+                                                  icon,
+                                                  color: Colors.white,
+                                                  size: 28, // Nhỏ hơn một chút để vừa đẹp
+                                                ),
                                               ),
                                             ),
                                           const SizedBox(width: 16),
@@ -311,15 +315,6 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                                             ),
                                                           ),
                                                         );
-
-                                                        // // Xử lý kết quả trả về khi LessonOverview bị pop (có thể không cần thiết nếu đã sử dụng onLessonOverviewPop)
-                                                        // if (result != null && result is Map<String, bool>) {
-                                                        //   print("Tiến độ trả về từ LessonOverview (pop): $result");
-                                                        //   // Duyệt qua map result và cập nhật tiến độ cho từng hoạt động
-                                                        //   result.forEach((activity, isCompleted) {
-                                                        //     _updateLessonProgress(lesson.id, activity, isCompleted);
-                                                        //   });
-                                                        // }
                                                         
                                                       },
                                                       style: ElevatedButton.styleFrom(
@@ -342,10 +337,12 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                             CircleAvatar(
                                               radius: 30,
                                               backgroundColor: color,
-                                              child: Icon(
-                                                icon,
-                                                color: Colors.white,
-                                                size: 26,
+                                              child: Center(
+                                                child: FaIcon(
+                                                  icon,
+                                                  color: Colors.white,
+                                                  size: 28, // Nhỏ hơn một chút để vừa đẹp
+                                                ),
                                               ),
                                             ),
                                         ],
