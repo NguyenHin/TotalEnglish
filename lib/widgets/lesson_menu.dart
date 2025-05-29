@@ -7,6 +7,8 @@ import 'package:total_english/screens/vocabulary_screen.dart'; // Import m√†n h√
 class LessonMenu extends StatelessWidget {
   final String lessonId;
   final Function(String activity, bool isCompleted)? onActivityCompleted;
+
+
   
   const LessonMenu({
     super.key,

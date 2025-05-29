@@ -58,7 +58,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
     if (_isEmailVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your email has been verified!')),
+        const SnackBar(content: Text('Email của bạn đã được xác minh!')),
       );
       Navigator.pushReplacement(
         context,
@@ -66,7 +66,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A verification email has been sent to your address. Please check your inbox and follow the instructions.')),
+        const SnackBar(content: Text('Một email xác minh đã được gửi đến địa chỉ của bạn. Vui lòng kiểm tra hộp thư đến và làm theo hướng dẫn.')),
       );
     }
   }
@@ -86,7 +86,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please wait $_resendCooldown seconds before resending.')),
+        SnackBar(content: Text('Vui lòng đợi $_resendCooldown giây trước khi gửi lại.')),
       );
     }
   }
@@ -109,7 +109,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               child: Column(
                 children: [
                   const Text(
-                    'Verify Email',
+                    'Xác minh Email',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 30,
@@ -120,19 +120,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   ),
                   const SizedBox(height: 100),
                   const Text(
-                    'A verification email has been sent to your address.',
+                    'Một email xác minh đã được gửi đến địa chỉ của bạn.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Please check your inbox (including spam/promotions folders) and click the link in the email to verify your account.',
+                    'Vui lòng kiểm tra hộp thư đến (bao gồm cả thư mục spam/quảng cáo) và nhấp vào liên kết trong email để xác minh tài khoản của bạn.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
                   ),
                   const SizedBox(height: 30),
                   CustomButton(
-                    text: 'Verified',
+                    text: 'Đã xác minh',
                     onPressed: _checkEmailVerified,
                   ),
                   const SizedBox(height: 20),
@@ -140,7 +140,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        "Didn't receive the email?",
+                        "Không nhận được email?",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w300,
@@ -150,8 +150,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         onPressed: _canResendEmail ? _resendVerificationEmail : null,
                         child: Text(
                           _canResendEmail
-                              ? 'Resend Email'
-                              : 'Resend after $_resendCooldown seconds',
+                              ? 'Gửi lại Email'
+                              : 'Gửi lại sau $_resendCooldown giây',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w400,
@@ -168,7 +168,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       Navigator.pushReplacementNamed(context, '/'); // Chuyển về màn hình đăng nhập/đăng ký
                     },
                     child: const Text(
-                      'Back to Login screen',
+                      'Quay lại màn hình Đăng nhập',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_screen.dart';
 
 class SwitchAccountScreen extends StatefulWidget {
   const SwitchAccountScreen({super.key});
@@ -8,171 +10,177 @@ class SwitchAccountScreen extends StatefulWidget {
 }
 
 class _SwitchAccountScreenState extends State<SwitchAccountScreen> {
-  List<Map<String, String>> accounts = [
-    {
-      'name': 'Tài khoản A',
-      'email': 'email_a@gmail.com',
-      'avatar': 'assets/avatar.jpg',
-      'selected': 'true',
-    },
-    {
-      'name': 'Tài khoản B',
-      'email': 'email_b@gmail.com',
-      'avatar': 'assets/avatar.jpg',
-      'selected': 'false',
-    },
-  ];
+  User? currentUser;
 
-  // Giả lập danh sách tài khoản hợp lệ
-  final validAccounts = {
-    'user1@gmail.com': {'password': '123456', 'name': 'Tài khoản C'},
-    'user2@gmail.com': {'password': 'abcdef', 'name': 'Tài khoản D'},
-  };
+  @override
+  void initState() {
+    super.initState();
+    currentUser = FirebaseAuth.instance.currentUser;
+  }
 
-  void _addNewAccount(String name, String email) {
+  void _refreshUser() {
     setState(() {
-      accounts.add({
-        'name': name,
-        'email': email,
-        'avatar': 'assets/avatar.jpg', // avatar mặc định
-        'selected': 'false',
-      });
+      currentUser = FirebaseAuth.instance.currentUser;
     });
   }
 
-  void _showLoginDialog() {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-    String? errorMessage;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) => AlertDialog(
-            title: const Text('Đăng nhập tài khoản'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                TextField(
-                  controller: passwordController,
-                  decoration: const InputDecoration(labelText: 'Mật khẩu'),
-                  obscureText: true,
-                ),
-                if (errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Hủy'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final email = emailController.text.trim();
-                  final password = passwordController.text.trim();
-
-                  if (validAccounts.containsKey(email) &&
-                      validAccounts[email]!['password'] == password) {
-                    final name = validAccounts[email]!['name']!;
-                    _addNewAccount(name, email);
-                    Navigator.pop(context);
-                  } else {
-                    setStateDialog(() {
-                      errorMessage = 'Email hoặc mật khẩu không đúng';
-                    });
-                  }
-                },
-                child: const Text('Đăng nhập'),
-              ),
-            ],
-          ),
-        );
-      },
+  void _addNewAccount() async {
+    final newAccount = await Navigator.push<Map<String, String>>(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
+
+    if (newAccount != null) {
+      _refreshUser();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã thêm tài khoản ${newAccount["email"]}')),
+      );
+    }
+  }
+
+  void _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    _refreshUser();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Đã đăng xuất tài khoản')));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFD3E6F6),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Chuyển tài khoản",
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    const backgroundColor = Color(0xFFF1F9FF);
+    const cardColor = Color(0xFFEAF6FF);
+    const buttonColor = Color(0xFF64B5F6);
+
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(
+          title: const Text('Tài khoản', style: TextStyle(color: Colors.black)),
+          centerTitle: true,
+          backgroundColor: backgroundColor,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, color: Colors.black54),
           ),
         ),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ...accounts.map((account) {
-            return Column(
-              children: [
-                ListTile(
-                  tileColor: const Color(0xFFF5F5F5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  leading: CircleAvatar(
-                    backgroundImage: AssetImage(account['avatar']!),
-                  ),
-                  title: Text(account['name']!),
-                  subtitle: Text(account['email']!),
-                  trailing: account['selected'] == 'true'
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      for (var acc in accounts) {
-                        acc['selected'] = 'false';
-                      }
-                      account['selected'] = 'true';
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-              ],
-            );
-          }),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _showLoginDialog,
-            icon: const Icon(Icons.add),
-            label: const Text("Thêm tài khoản mới"),
+        body: Center(
+          child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[300],
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: buttonColor,
+              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
+            onPressed: _addNewAccount,
+            child: const Text(
+              'Đăng nhập tài khoản',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
-        ],
+        ),
+      );
+    }
+
+    final photoUrl =
+        currentUser!.photoURL ?? 'assets/images/default_avatar.png';
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        title: const Text(
+          'Tài khoản hiện tại',
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
+        backgroundColor: backgroundColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: Colors.black54),
+        ),
       ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 3,
+              color: cardColor,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
+                leading: CircleAvatar(
+                  radius: 32,
+                  backgroundImage:
+                      photoUrl.startsWith('http')
+                          ? NetworkImage(photoUrl)
+                          : AssetImage(photoUrl) as ImageProvider,
+                ),
+                title: Text(
+                  currentUser!.displayName ?? 'Không có tên',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.black87,
+                  ),
+                ),
+                subtitle: Text(
+                  currentUser!.email ?? 'Không có email',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.logout,
+                    color: Colors.redAccent,
+                    size: 28,
+                  ),
+                  tooltip: 'Đăng xuất',
+                  onPressed: _signOut,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            Expanded(child: Container()),
+          ],
+        ),
+      ),
+      floatingActionButton: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        margin: const EdgeInsets.only(left: 16, bottom: 16),
+        child: FloatingActionButton.extended(
+          onPressed: _addNewAccount,
+          label: const Text(
+            'Thêm tài khoản mới',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+          icon: const Icon(Icons.add, color: Colors.black),
+          backgroundColor: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: const BorderSide(color: Colors.black54),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
