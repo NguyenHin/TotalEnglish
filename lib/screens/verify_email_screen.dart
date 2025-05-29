@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:total_english/screens/home_screen.dart'; // Import HomeScreen
-import 'package:total_english/widgets/custom_button.dart'; // Giữ lại nếu bạn muốn dùng lại style nút
+import 'package:total_english/screens/home_screen.dart';
+import 'package:total_english/widgets/custom_button.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -15,7 +15,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   bool _isEmailVerified = false;
   bool _canResendEmail = false;
   int _resendCooldown = 60;
-  Timer? _timer;
+  Timer? _resendTimer;
+  Timer? _checkEmailTimer;
 
   @override
   void initState() {
@@ -23,67 +24,68 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     _isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
 
     if (!_isEmailVerified) {
-      _startResendTimer();
+      _sendVerificationEmail();
+      _startResendCooldown();
+      _startEmailCheckTimer();
     }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _resendTimer?.cancel();
+    _checkEmailTimer?.cancel();
     super.dispose();
   }
 
-  void _startResendTimer() {
+  void _startResendCooldown() {
     _canResendEmail = false;
     _resendCooldown = 60;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_resendCooldown > 0) {
-        setState(() {
-          _resendCooldown--;
-        });
+        setState(() => _resendCooldown--);
       } else {
-        setState(() {
-          _canResendEmail = true;
-        });
+        setState(() => _canResendEmail = true);
         timer.cancel();
       }
     });
   }
 
-  Future<void> _checkEmailVerified() async {
-    await FirebaseAuth.instance.currentUser?.reload();
-    setState(() {
-      _isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+  void _startEmailCheckTimer() {
+    _checkEmailTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      await FirebaseAuth.instance.currentUser?.reload();
+      final isVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+      if (isVerified) {
+        timer.cancel();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email của bạn đã được xác minh!')),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+      }
     });
+  }
 
-    if (_isEmailVerified) {
+  Future<void> _sendVerificationEmail() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email của bạn đã được xác minh!')),
+        const SnackBar(content: Text('Email xác minh đã được gửi.')),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Một email xác minh đã được gửi đến địa chỉ của bạn. Vui lòng kiểm tra hộp thư đến và làm theo hướng dẫn.')),
+        SnackBar(content: Text('Lỗi gửi email xác minh: $e')),
       );
     }
   }
 
   Future<void> _resendVerificationEmail() async {
     if (_canResendEmail) {
-      try {
-        await FirebaseAuth.instance.currentUser?.sendEmailVerification();
-        _startResendTimer();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã gửi lại email xác minh. Vui lòng kiểm tra hộp thư đến.')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi gửi lại email xác minh: $e')),
-        );
-      }
+      await _sendVerificationEmail();
+      _startResendCooldown();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Vui lòng đợi $_resendCooldown giây trước khi gửi lại.')),
@@ -93,90 +95,79 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
-        resizeToAvoidBottomInset: false,
-        body: Stack(
-          children: [
-            _buildBackground(),
-            _buildBackButton(context),
-            Positioned(
-              top: 100,
-              left: 0,
-              right: 0,
-              child: Column(
-                children: [
-                  const Text(
-                    'Xác minh Email',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Inter',
-                      color: Colors.white,
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFFFFF),
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          _buildBackground(),
+          _buildBackButton(context),
+          Positioned(
+            top: 100,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                const Text(
+                  'Xác minh Email',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 100),
+                const Text(
+                  'Một email xác minh đã được gửi đến địa chỉ của bạn.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Vui lòng kiểm tra hộp thư đến (bao gồm cả thư mục spam) và nhấp vào liên kết trong email để xác minh tài khoản.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Không nhận được email?",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
                     ),
-                  ),
-                  const SizedBox(height: 100),
-                  const Text(
-                    'Một email xác minh đã được gửi đến địa chỉ của bạn.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Vui lòng kiểm tra hộp thư đến (bao gồm cả thư mục spam/quảng cáo) và nhấp vào liên kết trong email để xác minh tài khoản của bạn.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
-                  ),
-                  const SizedBox(height: 30),
-                  CustomButton(
-                    text: 'Đã xác minh',
-                    onPressed: _checkEmailVerified,
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Không nhận được email?",
-                        style: TextStyle(
+                    TextButton(
+                      onPressed: _canResendEmail ? _resendVerificationEmail : null,
+                      child: Text(
+                        _canResendEmail
+                            ? 'Gửi lại Email'
+                            : 'Gửi lại sau $_resendCooldown giây',
+                        style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w300,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF89B3D4),
                         ),
                       ),
-                      TextButton(
-                        onPressed: _canResendEmail ? _resendVerificationEmail : null,
-                        child: Text(
-                          _canResendEmail
-                              ? 'Gửi lại Email'
-                              : 'Gửi lại sau $_resendCooldown giây',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF89B3D4),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () {
-                      FirebaseAuth.instance.signOut();
-                      Navigator.pushReplacementNamed(context, '/'); // Chuyển về màn hình đăng nhập/đăng ký
-                    },
-                    child: const Text(
-                      'Quay lại màn hình Đăng nhập',
-                      style: TextStyle(fontSize: 16),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () {
+                    FirebaseAuth.instance.signOut();
+                    Navigator.pushReplacementNamed(context, '/');
+                  },
+                  child: const Text(
+                    'Quay lại màn hình Đăng nhập',
+                    style: TextStyle(fontSize: 16),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -189,9 +180,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           left: 0,
           right: 0,
           height: 290,
-          child: CustomPaint(
-            painter: WavePainter(),
-          ),
+          child: CustomPaint(painter: WavePainter()),
         ),
       ],
     );
