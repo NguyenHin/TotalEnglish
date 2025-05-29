@@ -2,13 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
-import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
-
+import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/login_screen.dart';
-import 'package:total_english/screens/new_password.dart';
-import 'package:total_english/services/auth_services.dart'; // Đảm bảo đường dẫn đúng
-
+import 'package:total_english/screens/change_password_screen.dart'; // 🆕 Import mới
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -18,25 +15,44 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
+  User? currentUser;
+
+  String displayName = "";
+  String email = "";
+  String? photoUrl;
+
   String _selectedLanguage = "vi";
-  User? _currentUser;
-  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentUser();
-  }
 
-  Future<void> _loadCurrentUser() async {
-    final user = await _authService.getCurrentUser();
-    if (mounted) {
-      setState(() {
-        _currentUser = user;
-      });
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (mounted) {
+        setState(() {
+          currentUser = user;
+          _loadUserInfo(user);
+        });
+      }
+    });
+
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _loadUserInfo(currentUser);
     }
   }
 
+  void _loadUserInfo(User? user) {
+    if (user != null) {
+      displayName = user.displayName ?? user.email ?? "Chưa có tên";
+      email = user.email ?? "";
+      photoUrl = user.photoURL;
+    } else {
+      displayName = "Chưa đăng nhập";
+      email = "";
+      photoUrl = null;
+    }
+  }
 
   void _showLanguagePicker() {
     showModalBottomSheet(
@@ -54,20 +70,20 @@ class _AccountScreenState extends State<AccountScreen> {
                 leading: const Text("🇻🇳", style: TextStyle(fontSize: 20)),
                 title: const Text("Tiếng Việt"),
                 onTap: () {
+                  Navigator.pop(context);
                   setState(() {
                     _selectedLanguage = "vi";
                   });
-                  Navigator.pop(context);
                 },
               ),
               ListTile(
                 leading: const Text("🇺🇸", style: TextStyle(fontSize: 20)),
                 title: const Text("English"),
                 onTap: () {
+                  Navigator.pop(context);
                   setState(() {
                     _selectedLanguage = "en";
                   });
-                  Navigator.pop(context);
                 },
               ),
             ],
@@ -75,10 +91,6 @@ class _AccountScreenState extends State<AccountScreen> {
         );
       },
     );
-  }
-
-  String get languageLabel {
-    return _selectedLanguage == "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English";
   }
 
   void _showLogoutDialog() {
@@ -90,21 +102,17 @@ class _AccountScreenState extends State<AccountScreen> {
           content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text("Huỷ"),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-
-                await _authService.signOut();
-
+                await FirebaseAuth.instance.signOut();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
+                      (route) => false,
                 );
               },
               child: const Text("Đăng xuất"),
@@ -117,177 +125,223 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final backgroundColor = const Color(0xFFF1F9FF); // pastel xanh nhạt
 
-      body: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFBBDEFB),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "Tài khoản",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black87,
+          ),
+        ),
+      ),
+      body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 25),
-
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFD3E6F6),
-
-                borderRadius: BorderRadius.circular(16),
+                color: const Color(0xFFD6ECFF),
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundImage: _currentUser?.photoURL != null
-                            ? NetworkImage(_currentUser!.photoURL!)
-                            : const AssetImage('assets/icon/panda_icon.png') as ImageProvider,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _currentUser?.displayName ?? "Người dùng",
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text("Chuyển tài khoản", style: TextStyle(fontSize: 15, color: Colors.black)),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SwitchAccountScreen()));
-                        },
-                        child: const Icon(Icons.compare_arrows),
-                      ),
-                    ],
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: photoUrl != null
+                        ? NetworkImage("$photoUrl?timestamp=${DateTime.now().millisecondsSinceEpoch}")
+                        : const AssetImage('assets/icon/panda_icon.png') as ImageProvider,
                   ),
-                  const Divider(height: 32, thickness: 1, color: Colors.black),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: ListTile(
-                      leading: Icon(Icons.settings, color: Colors.blue[700]),
-                      title: const Text("Cài đặt"),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const SettingsScreen()));
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFD3E6F6),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading:
-                        Icon(Icons.info_outline, color: Colors.blue[700]),
-                    title: const Text("Thông tin cá nhân"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const PersonalInfoScreen()));
-                    },
-                  ),
-                  const Divider(height: 1, thickness: 1, color: Colors.black),
-                  ListTile(
-                    leading: Icon(Icons.password, color: Colors.blue[700]),
-                    title: const Text("Đổi mật khẩu"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const NewPassword()),
-
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFD3E6F6),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.info, color: Colors.blue[700]),
-                    title: const Text("Giới thiệu"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const AboutScreen()));
-                    },
-                  ),
-                  const Divider(height: 1, thickness: 1, color: Colors.black),
-                  ListTile(
-                    leading: Icon(Icons.language, color: Colors.blue[700]),
-                    title: const Text("Ngôn ngữ"),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(languageLabel),
-                        const SizedBox(width: 10),
-                        const Icon(Icons.expand_more),
+                        Text(
+                          displayName,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        if (email.isNotEmpty)
+                          Text(
+                            email,
+                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
                       ],
                     ),
-                    onTap: _showLanguagePicker,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 16),
+            _buildMenuCard([
+              _buildListTile(
+                icon: Icons.person_outline,
+                title: "Thông tin cá nhân",
+                onTap: () async {
+                  if (currentUser == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Bạn chưa đăng nhập')),
+                    );
+                    return;
+                  }
+
+                  final updated = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PersonalInfoScreen(user: currentUser!),
+                    ),
+                  );
+
+                  if (updated == true) {
+                    await FirebaseAuth.instance.currentUser?.reload();
+                    final refreshedUser = FirebaseAuth.instance.currentUser;
+
+                    setState(() {
+                      currentUser = refreshedUser;
+                      _loadUserInfo(refreshedUser);
+                    });
+                  }
+                },
+              ),
+              _divider(),
+              _buildListTile(
+                icon: Icons.lock_outline,
+                title: "Đổi mật khẩu",
+                onTap: () {
+                  if (currentUser == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Bạn chưa đăng nhập')),
+                    );
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChangePasswordScreen(), // Bạn cần tạo màn hình này
+                    ),
+                  );
+                },
+              ),
+              _divider(),
+              _buildListTile(
+                icon: Icons.switch_account_outlined,
+                title: "Chuyển tài khoản",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SwitchAccountScreen()),
+                  );
+                },
+              ),
+            ]),
+            const SizedBox(height: 16),
+            _buildMenuCard([
+              _buildListTile(
+                icon: Icons.settings,
+                title: "Cài đặt",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+              ),
+              _divider(),
+              _buildListTile(
+                icon: Icons.language,
+                title: "Ngôn ngữ",
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _selectedLanguage == "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.expand_more),
+                  ],
+                ),
+                onTap: _showLanguagePicker,
+              ),
+              _divider(),
+              _buildListTile(
+                icon: Icons.info_outline,
+                title: "Giới thiệu",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AboutScreen()),
+                  );
+                },
+              ),
+            ]),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _showLogoutDialog,
-
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[200],
+                  backgroundColor: const Color(0xFF64B5F6),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-
-                      borderRadius: BorderRadius.circular(20)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: const Text("Đăng xuất", style: TextStyle(fontSize: 16)),
+                onPressed: _showLogoutDialog,
+                child: const Text(
+                  "Đăng xuất",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
-            const SizedBox(height: 40),
-            Center(
-              child: Image.asset(
-                "assets/icon/panda_icon.png",
-                height: 230,
-              ),
+            const Spacer(),
+            const Text(
+              "Phiên bản 1.0.0",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
       ),
     );
   }
-}
 
+  Widget _buildMenuCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF6FF),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildListTile({
+    required IconData icon,
+    required String title,
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blueAccent),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+      trailing: trailing ?? const Icon(Icons.chevron_right),
+      onTap: onTap,
+    );
+  }
+
+  Widget _divider() {
+    return const Divider(height: 1, indent: 16, endIndent: 16);
+  }
+}

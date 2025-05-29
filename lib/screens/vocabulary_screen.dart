@@ -10,7 +10,7 @@ class VocabularyScreen extends StatefulWidget {
   final void Function(String activity, bool isCompleted)? onCompleted;
 
 
-  VocabularyScreen({
+  const VocabularyScreen({
     super.key, 
     required this.lessonId,
     this.onCompleted});
@@ -102,13 +102,19 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   @override
   Widget build(BuildContext context) {
     print("Đang build giao diện từ vựng cho bài học: ${widget.lessonId}");
-    return PopScope<int>(
-      onPopInvokedWithResult: (bool didPop, int? result) {
+    return WillPopScope(
+      onWillPop: () async {
+        // Khi người dùng bấm back vật lý
         if (!_vocabularyCompleted && _currentIndex == _vocabularyList.length - 1) {
           _vocabularyCompleted = true;
           widget.onCompleted?.call('vocabulary', true);
-          print("Đã gọi onCompleted khi user bấm nút back hệ thống.");
+          print("Đã gọi onCompleted khi user bấm nút back vật lý.");
+          // Trả về kết quả kèm dữ liệu completed
+          Navigator.pop(context, {'completedActivity': 'vocabulary', 'isCompleted': true});
+          return false; // Đã tự pop rồi, không cho pop mặc định nữa
         }
+        // Nếu chưa hoàn thành thì cho phép pop bình thường
+        return true;
       },
       child: Scaffold(
         body: SafeArea(
@@ -277,12 +283,15 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                           }),
                                         ),
                                         const SizedBox(height: 16),
+
                                       ],
                                     ),
                     ),
+                    
                   ],
                 ),
               ),
+              
               _buildBackButton(context),
             ],
           ),

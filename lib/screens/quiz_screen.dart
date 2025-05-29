@@ -205,13 +205,11 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope<bool>(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, bool? result) {
-        if (didPop && widget.onCompleted != null) {
-          widget.onCompleted!('quiz', _isQuizOver); // true nếu đã hoàn thành
-        }
-      },
+    return WillPopScope(
+    onWillPop: () async {
+      widget.onCompleted?.call('quiz', _isQuizOver);
+      return true; // cho phép pop
+    },
       child: Scaffold(
         body: SafeArea(
           child: Stack(
@@ -271,7 +269,7 @@ class _QuizScreenState extends State<QuizScreen> {
                               ElevatedButton(
                                 onPressed: () {
                                   if (widget.onCompleted != null) {
-                                    widget.onCompleted!('quiz', true);
+                                    widget.onCompleted!('quiz', _isQuizOver);
                                   }
                                   Navigator.pop(context);
                                 },
@@ -313,7 +311,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 child: IconButton(
                   onPressed: () {
                     if (widget.onCompleted != null) {
-                      widget.onCompleted!('quiz', true);
+                      widget.onCompleted!('quiz', _isQuizOver);
                     }
                     Navigator.pop(context);
                   },
