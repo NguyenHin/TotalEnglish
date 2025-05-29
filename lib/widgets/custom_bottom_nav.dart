@@ -4,11 +4,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool showDot;
 
   const CustomBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.showDot,
   });
 
   @override
@@ -20,20 +22,38 @@ class CustomBottomNav extends StatelessWidget {
       selectedItemColor: Colors.blue,
       unselectedItemColor: Colors.grey,
       backgroundColor: Colors.white,
-      items: const [
-        BottomNavigationBarItem(
+      items: [
+        const BottomNavigationBarItem(
           icon: Icon(FontAwesomeIcons.bookOpen),
           label: 'Bài học',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(FontAwesomeIcons.fire),
           label: 'Streak',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.notifications),
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.notifications),
+              if (showDot)
+                Positioned(
+                  right: -1,
+                  top: -1,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           label: 'Thông báo',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.account_circle),
           label: 'Tài khoản',
         ),
@@ -41,3 +61,4 @@ class CustomBottomNav extends StatelessWidget {
     );
   }
 }
+

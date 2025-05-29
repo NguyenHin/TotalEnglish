@@ -320,4 +320,3 @@ class TermsScreen extends StatelessWidget {
       ),
     );
   }
-}

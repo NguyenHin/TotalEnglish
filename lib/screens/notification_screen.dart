@@ -7,11 +7,29 @@ import 'package:intl/intl.dart';
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
+  Future<void> markNotificationsAsRead() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if(user == null) return;
+
+    final snapshots = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: user.uid)
+        .where('read', isEqualTo: false)
+        .get();
+    for (var doc in snapshots.docs) {
+      await doc.reference.update({'read': true});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      markNotificationsAsRead();
+    }); //📌addPostFrameCallback đảm bảo hàm chỉ chạy sau khi widget được render.
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Column(

@@ -141,7 +141,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
     Navigator.pop(context, true);
   }
-
   void _pickBirthDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -188,7 +187,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         ? FileImage(_pickedImage!)
                         : (_photoUrl != null && _photoUrl!.isNotEmpty
                         ? NetworkImage(_photoUrl!)
-                        : const AssetImage('assets/avatar.jpg')) as ImageProvider,
+                        : const AssetImage('assets/icon/panda_icon.png')) as ImageProvider,
                   ),
                   Positioned(
                     bottom: 0,

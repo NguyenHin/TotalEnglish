@@ -95,7 +95,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text(
-              'Forgot Password?',
+              'Quên Mật Khẩu?',
               textAlign: TextAlign.center, // Căn giữa chữ
               style: TextStyle(
                 fontSize: 30,
@@ -107,7 +107,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             const SizedBox(height: 80),
             
             const Text(
-              "Please write your email to receive a \nconfirmation code to set a new password",
+              "Vui lòng nhập email của bạn để nhận liên kết và đặt lại mật khẩu.",
               textAlign: TextAlign.center, // Căn giữa chữ
               style: TextStyle(
                 fontSize: 16,
@@ -124,7 +124,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             const SizedBox(height: 40),
 
             CustomButton(
-              text: "Confirm mail",
+              text: "Xác nhận email",
               onPressed: () async {
                 final email = _emailController.text.trim();
 

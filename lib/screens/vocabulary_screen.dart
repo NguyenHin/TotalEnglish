@@ -10,7 +10,7 @@ class VocabularyScreen extends StatefulWidget {
   final void Function(String activity, bool isCompleted)? onCompleted;
 
 
-  VocabularyScreen({
+  const VocabularyScreen({
     super.key, 
     required this.lessonId,
     this.onCompleted});
@@ -102,181 +102,199 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   @override
   Widget build(BuildContext context) {
     print("Đang build giao diện từ vựng cho bài học: ${widget.lessonId}");
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 55),
-                  const HeaderLesson(
-                    title: 'Vocabulary',
-                    color: Color(0xFF89B3D4),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _errorMessage != null
-                            ? Center(child: Text(_errorMessage!))
-                            : _vocabularyList.isEmpty
-                                ? const Center(child: Text('Không có từ vựng'))
-                                : Column(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: PageView.builder(
-                                          controller: _pageController,
-                                          onPageChanged: (index) {
-                                            setState(() {
-                                              _currentIndex = index;
-                                              print("Đang ở trang: $_currentIndex");
-
-                                              // Kiểm tra nếu người dùng đến từ vựng cuối cùng, gọi onCompleted 1 lần
-                                              if (index == _vocabularyList.length - 1 && !_vocabularyCompleted) {
-                                                _vocabularyCompleted = true;
-                                                print("Đã hoàn thành từ vựng.");
-                                                widget.onCompleted?.call('vocabulary', true);
-                                              }
-
-                                            });
-                                          },
-
-                                          itemCount: _vocabularyList.length,
-                                          itemBuilder: (context, index) {
-                                            final currentWord = _vocabularyList[index];
-                                            final wordData = currentWord.data() as Map<String, dynamic>?;
-                                            return SingleChildScrollView(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.center,
-                                                children: [
-                                                  // Hình ảnh của từ vựng
-                                                  Image.network(
-                                                    wordData?['imageURL'] ?? '',
-                                                    width: 160,
-                                                    height: 160,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) {
-                                                      return const SizedBox(
-                                                        width: 160,
-                                                        height: 160,
-                                                        child: Center(child: Icon(Icons.image_not_supported)),
-                                                      );
-                                                    },
-                                                  ),
-                                                  const SizedBox(height: 16),
-                                                  Text(
-                                                    wordData?['word'] ?? '',
-                                                    style: const TextStyle(
-                                                      fontSize: 24,
-                                                      fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async {
+        // Khi người dùng bấm back vật lý
+        if (!_vocabularyCompleted && _currentIndex == _vocabularyList.length - 1) {
+          _vocabularyCompleted = true;
+          widget.onCompleted?.call('vocabulary', true);
+          print("Đã gọi onCompleted khi user bấm nút back vật lý.");
+          // Trả về kết quả kèm dữ liệu completed
+          Navigator.pop(context, {'completedActivity': 'vocabulary', 'isCompleted': true});
+          return false; // Đã tự pop rồi, không cho pop mặc định nữa
+        }
+        // Nếu chưa hoàn thành thì cho phép pop bình thường
+        return true;
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 55),
+                    const HeaderLesson(
+                      title: 'Vocabulary',
+                      color: Color(0xFF89B3D4),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _errorMessage != null
+                              ? Center(child: Text(_errorMessage!))
+                              : _vocabularyList.isEmpty
+                                  ? const Center(child: Text('Không có từ vựng'))
+                                  : Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: PageView.builder(
+                                            controller: _pageController,
+                                            onPageChanged: (index) {
+                                              setState(() {
+                                                _currentIndex = index;
+                                                print("Đang ở trang: $_currentIndex");
+      
+                                                // Kiểm tra nếu người dùng đến từ vựng cuối cùng, gọi onCompleted 1 lần
+                                                if (index == _vocabularyList.length - 1 && !_vocabularyCompleted) {
+                                                  _vocabularyCompleted = true;
+                                                  print("Đã hoàn thành từ vựng.");
+                                                  widget.onCompleted?.call('vocabulary', true);
+                                                }
+      
+                                              });
+                                            },
+      
+                                            itemCount: _vocabularyList.length,
+                                            itemBuilder: (context, index) {
+                                              final currentWord = _vocabularyList[index];
+                                              final wordData = currentWord.data() as Map<String, dynamic>?;
+                                              return SingleChildScrollView(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    // Hình ảnh của từ vựng
+                                                    Image.network(
+                                                      wordData?['imageURL'] ?? '',
+                                                      width: 160,
+                                                      height: 160,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return const SizedBox(
+                                                          width: 160,
+                                                          height: 160,
+                                                          child: Center(child: Icon(Icons.image_not_supported)),
+                                                        );
+                                                      },
                                                     ),
-                                                  ),
-                                                  Text(
-                                                    wordData?['phonetic'] ?? '',
-                                                    style: const TextStyle(
-                                                      fontSize: 16,
-                                                      color: Colors.grey,
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      wordData?['word'] ?? '',
+                                                      style: const TextStyle(
+                                                        fontSize: 24,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 16),
-
-                                                  Text(
-                                                    wordData?['meaning'] ?? '',
-                                                    style: const TextStyle(
-                                                      color: Colors.green,
-                                                      fontSize: 17,
+                                                    Text(
+                                                      wordData?['phonetic'] ?? '',
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.grey,
+                                                      ),
                                                     ),
-                                                    textAlign: TextAlign.center,
-                                                  ),
-                                                  const SizedBox(height: 16),
-
-                                                  PlayButton(
-                                                    onPressed: () async{
-                                                      final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
-                                                      if (wordData != null && wordData.containsKey('word')) {
-                                                        await _handleListen(wordData['word']);
-
-
-                                                      } else {
-                                                        print("Không tìm thấy từ để phát âm.");
-                                                      }
-                                                    },
-                                                  ),
-
-                                                  const SizedBox(height: 16),
-                                                  // Ví dụ câu cho từ vựng
-                                                  if (wordData?.containsKey('example') ?? false)
-                                                    Column(
-                                                      children: [
-                                                        Text(
-                                                          wordData?['example'] ?? '',
-                                                          style: const TextStyle(
-                                                            fontSize: 18,
-                                                            fontWeight: FontWeight.w500,
-                                                          ),
-                                                          textAlign: TextAlign.center,
-                                                        ),
-                                                        const SizedBox(height: 12),
-                                                        
-                                                       //Nghĩa của câu 
-                                                        if (wordData?.containsKey('exampleMeaning') ?? false)
+                                                    const SizedBox(height: 16),
+      
+                                                    Text(
+                                                      wordData?['meaning'] ?? '',
+                                                      style: const TextStyle(
+                                                        color: Colors.green,
+                                                        fontSize: 17,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                    ),
+                                                    const SizedBox(height: 16),
+      
+                                                    PlayButton(
+                                                      onPressed: () async{
+                                                        final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
+                                                        if (wordData != null && wordData.containsKey('word')) {
+                                                          await _handleListen(wordData['word']);
+      
+      
+                                                        } else {
+                                                          print("Không tìm thấy từ để phát âm.");
+                                                        }
+                                                      },
+                                                    ),
+      
+                                                    const SizedBox(height: 16),
+                                                    // Ví dụ câu cho từ vựng
+                                                    if (wordData?.containsKey('example') ?? false)
+                                                      Column(
+                                                        children: [
                                                           Text(
-                                                            wordData?['exampleMeaning'] ?? '',
+                                                            wordData?['example'] ?? '',
                                                             style: const TextStyle(
-                                                              color: Colors.blueAccent,
-                                                              fontSize: 16,
+                                                              fontSize: 18,
+                                                              fontWeight: FontWeight.w500,
                                                             ),
                                                             textAlign: TextAlign.center,
                                                           ),
-                                                        const SizedBox(height: 16),
-
-                                                        // Nút play cho ví dụ
-                                                        PlayButton(
-                                                          onPressed: () async {
-                                                            final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
-                                                            if (wordData != null && wordData.containsKey('example')) {
-                                                              await _handleListen(wordData['example']);
-                                                            } else {
-                                                              print("Không tìm thấy ví dụ để phát âm.");
-                                                            }
-                                                          },
-                                                        ),
-                                                        const SizedBox(height: 12),
-                                                      ],
-                                                    ),
-                                                ],
+                                                          const SizedBox(height: 12),
+                                                          
+                                                         //Nghĩa của câu 
+                                                          if (wordData?.containsKey('exampleMeaning') ?? false)
+                                                            Text(
+                                                              wordData?['exampleMeaning'] ?? '',
+                                                              style: const TextStyle(
+                                                                color: Colors.blueAccent,
+                                                                fontSize: 16,
+                                                              ),
+                                                              textAlign: TextAlign.center,
+                                                            ),
+                                                          const SizedBox(height: 16),
+      
+                                                          // Nút play cho ví dụ
+                                                          PlayButton(
+                                                            onPressed: () async {
+                                                              final wordData = _vocabularyList[_currentIndex].data() as Map<String, dynamic>?;
+                                                              if (wordData != null && wordData.containsKey('example')) {
+                                                                await _handleListen(wordData['example']);
+                                                              } else {
+                                                                print("Không tìm thấy ví dụ để phát âm.");
+                                                              }
+                                                            },
+                                                          ),
+                                                          const SizedBox(height: 12),
+                                                        ],
+                                                      ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: List.generate(_vocabularyList.length, (index) {
+                                            return AnimatedContainer(
+                                              duration: const Duration(milliseconds: 200),
+                                              margin: const EdgeInsets.symmetric(horizontal: 5),
+                                              height: 10,
+                                              width: 10,
+                                              decoration: BoxDecoration(
+                                                color: _currentIndex == index ? Colors.blue : Colors.grey,
+                                                shape: BoxShape.circle,
                                               ),
                                             );
-                                          },
+                                          }),
                                         ),
-                                      ),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: List.generate(_vocabularyList.length, (index) {
-                                          return AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
-                                            margin: const EdgeInsets.symmetric(horizontal: 5),
-                                            height: 10,
-                                            width: 10,
-                                            decoration: BoxDecoration(
-                                              color: _currentIndex == index ? Colors.blue : Colors.grey,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          );
-                                        }),
-                                      ),
-                                      const SizedBox(height: 16),
-                                    ],
-                                  ),
-                  ),
-                ],
+                                        const SizedBox(height: 16),
+
+                                      ],
+                                    ),
+                    ),
+                    
+                  ],
+                ),
               ),
-            ),
-            _buildBackButton(context),
-          ],
+              
+              _buildBackButton(context),
+            ],
+          ),
         ),
       ),
     );

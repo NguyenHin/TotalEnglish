@@ -137,7 +137,7 @@ class _QuizScreenState extends State<QuizScreen> {
         });
       } else {
         // Không khớp, lật lại sau một khoảng thời gian
-        Future.delayed(const Duration(milliseconds: 1000), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           setState(() {
             _isCardFlipped[firstIndex] = false;
             _isCardFlipped[secondIndex] = false;
@@ -206,12 +206,10 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async {
-        if (widget.onCompleted != null) {
-          widget.onCompleted!('quiz', _isQuizOver); // Gọi với true nếu đã hoàn thành
-        }
-        return true;
-      },
+    onWillPop: () async {
+      widget.onCompleted?.call('quiz', _isQuizOver);
+      return true; // cho phép pop
+    },
       child: Scaffold(
         body: SafeArea(
           child: Stack(
@@ -271,7 +269,7 @@ class _QuizScreenState extends State<QuizScreen> {
                               ElevatedButton(
                                 onPressed: () {
                                   if (widget.onCompleted != null) {
-                                    widget.onCompleted!('quiz', true);
+                                    widget.onCompleted!('quiz', _isQuizOver);
                                   }
                                   Navigator.pop(context);
                                 },
@@ -313,7 +311,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 child: IconButton(
                   onPressed: () {
                     if (widget.onCompleted != null) {
-                      widget.onCompleted!('quiz', _isQuizOver); // Gọi với true nếu đã hoàn thành
+                      widget.onCompleted!('quiz', _isQuizOver);
                     }
                     Navigator.pop(context);
                   },

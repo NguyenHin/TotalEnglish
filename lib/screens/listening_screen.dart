@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
+import 'package:total_english/widgets/completion_dialog.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:total_english/widgets/play_button.dart';
 
@@ -30,6 +31,8 @@ class _ListeningScreenState extends State<ListeningScreen> {
   String? _errorMessage;
   bool _isLessonCompleted = false; // Theo dõi trạng thái hoàn thành của bài học
   final Set<int> _answeredCorrectly = {}; // ✅ Từ đã trả lời đúng
+
+  bool _showCompletionDialog = false;
 
   @override
   void initState() {
@@ -113,6 +116,7 @@ class _ListeningScreenState extends State<ListeningScreen> {
     if (_currentPage == _selectedWords.length - 1 && _answeredCorrectly.length == _selectedWords.length) {
       setState(() {
         _isLessonCompleted = true;
+        _showCompletionDialog = true;
       });
       //await _completeLesson();
       print("Đã hoàn thành listening .");
@@ -124,9 +128,11 @@ class _ListeningScreenState extends State<ListeningScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (widget.onCompleted != null && !_isLessonCompleted) {
-          widget.onCompleted!('listening', false);
+        if (!_isLessonCompleted) {
+          widget.onCompleted?.call('listening', false);
+          print("Đã gọi onCompleted khi user pop ở Listening.");
         }
+        // Trả về true để cho phép pop (thoát màn hình)
         return true;
       },
       child: Scaffold(
@@ -140,11 +146,26 @@ class _ListeningScreenState extends State<ListeningScreen> {
               children: [
                 _buildBackButton(context),
                 _buildListeningForm(context),
+                if (_showCompletionDialog)
+                  CompletionDialog(
+                    title: 'Bạn đã hoàn thành phần luyện nghe!🎊',
+                    message: 'Hãy quay lại bài học để tiếp tục nhé.',
+                    onConfirmed: () {
+                      if (widget.onCompleted != null && !_isLessonCompleted) {
+                        widget.onCompleted!('listening', true);
+                      }
+                      setState(() {
+                        _showCompletionDialog = false;
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
               ],
             ),
           ),
         ),
       ),
+      
     );
   }
 

@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:total_english/services/notification_services.dart';
 import 'lesson_screen.dart';
 import 'streak_screen.dart';
 import 'notification_screen.dart';
@@ -22,6 +25,16 @@ class _HomeScreenState extends State<HomeScreen> {
     AccountScreen(),  // Thêm màn hình tài khoản vào danh sách
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 2), () async {
+      await checkAndSendStreakWarning(); // Gọi trực tiếp
+      await checkAndSendStudyReminder();
+    });
+  }
+
+
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
@@ -32,12 +45,32 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+      bottomNavigationBar: StreamBuilder<bool>(
+        stream: getHasUnreadNotifications(),
+        builder: (context, snapshot) {
+          final hasUnread = snapshot.data ?? false;
+          return CustomBottomNav(
+            currentIndex: _currentIndex,
+            onTap: _onTabTapped,
+              showDot: hasUnread,  // <-- truyền biến hasUnread vào
+          );
+        },
       ),
     );
   }
+
+  Stream<bool> getHasUnreadNotifications() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value(false);
+
+    return FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: user.uid)
+        .where('read', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.isNotEmpty);
+  }
+
 
 }
 

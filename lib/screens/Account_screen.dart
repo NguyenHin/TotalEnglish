@@ -121,7 +121,6 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final backgroundColor = const Color(0xFFF1F9FF);
-
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -153,7 +152,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     radius: 30,
                     backgroundImage: photoUrl != null
                         ? NetworkImage("$photoUrl?timestamp=${DateTime.now().millisecondsSinceEpoch}")
-                        : const AssetImage('assets/avatar.jpg') as ImageProvider,
+                        : const AssetImage('assets/icon/panda_icon.png') as ImageProvider,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

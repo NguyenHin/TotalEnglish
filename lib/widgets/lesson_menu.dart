@@ -7,6 +7,8 @@ import 'package:total_english/screens/vocabulary_screen.dart'; // Import màn h�
 class LessonMenu extends StatelessWidget {
   final String lessonId;
   final Function(String activity, bool isCompleted)? onActivityCompleted;
+
+
   
   const LessonMenu({
     super.key,
@@ -66,7 +68,7 @@ class LessonMenu extends StatelessWidget {
         ),
         _buildMenuButton(
           context,
-          "Bài kiểm tra",
+          "Mini Game",
           Icons.assignment,
           Color(0xFF89B3D4),
          QuizScreen(

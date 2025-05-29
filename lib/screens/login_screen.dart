@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/forgot_password.dart';
@@ -128,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen>{
         child: SizedBox(
           width: screenWidth * 0.87,
           child: CustomTextField(
-            hintText: 'Password',
+            hintText: 'Mật khẩu',
             icon: Icons.lock,
             controller: passwordController,
             isPassword: true,
@@ -148,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen>{
             );
           },
           child: const Text(
-            'Forgot Password?',
+            'Quên mật khẩu?',
             style: TextStyle(
               color: Colors.black54,
               fontSize: 14,
@@ -165,52 +167,52 @@ class _LoginScreenState extends State<LoginScreen>{
         child: SizedBox(
           width: screenWidth * 0.87,
           child: CustomButton(
-            text: 'Login',
+            text: 'Đăng nhập',
             onPressed: () async {
-  try {
-    final credential = await AuthService().signInWithEmail(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
+              try {
+                final credential = await AuthService().signInWithEmail(
+                  emailController.text.trim(),
+                  passwordController.text.trim(),
+                );
 
-    if (credential != null) {
-      // Kiểm tra trạng thái xác minh email
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null && user.emailVerified) {
-        // Nếu email đã được xác minh, chuyển đến màn hình chính
-        failedLoginAttempts = 0; // reset
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      } else {
-        // Nếu email chưa được xác minh, thông báo cho người dùng
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng xác minh email của bạn.')),
-        );
-        // Bạn có thể gửi lại email xác minh nếu cần
-        await user?.sendEmailVerification();
-      }
-    } else {
-      throw Exception('Đăng nhập thất bại');
-    }
-  } catch (e) {
-    failedLoginAttempts++;
+                if (credential != null) {
+                  // Kiểm tra trạng thái xác minh email
+                  User? user = FirebaseAuth.instance.currentUser;
+                  if (user != null && user.emailVerified) {
+                    // Nếu email đã được xác minh, chuyển đến màn hình chính
+                    failedLoginAttempts = 0; // reset
 
-    String message = 'Email hoặc mật khẩu không đúng';
-    if (failedLoginAttempts >= 3) {
-      message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
-    }
+                    // !!! Lấy fcmToken và lưu vào Firestore
+                    await AuthService().saveFCMTokenToFirestore(user);      
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-}
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    );
+                  } else {
+                    // Nếu email chưa được xác minh, thông báo cho người dùng
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng xác minh email của bạn.')),
+                    );
+                    // Bạn có thể gửi lại email xác minh nếu cần
+                    await user?.sendEmailVerification();
+                  }
+                } else {
+                  throw Exception('Đăng nhập thất bại');
+                }
+              } catch (e) {
+                failedLoginAttempts++;
 
+                String message = 'Email hoặc mật khẩu không đúng';
+                if (failedLoginAttempts >= 3) {
+                  message += '\nBạn quên mật khẩu? Hoặc chưa có tài khoản?';
+                }
 
-
-
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              }
+            }
 
           ),
         ),
@@ -260,10 +262,15 @@ class _LoginScreenState extends State<LoginScreen>{
         left: MediaQuery.of(context).size.width * 0.33,
         child: SocialLoginButtons(
           onGoogleTap: () async {
-            await AuthService().signOut(); // <- Thêm dòng này
+
+            await AuthService().signOut(); //Logout trước khi đăng nhập lại
 
             User? user = await AuthService().signInWithGoogle();
             if (user != null && context.mounted) {
+
+              // !!! Lấy fcmToken và lưu vào Firestore
+              await AuthService().saveFCMTokenToFirestore(user);  
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -278,6 +285,10 @@ class _LoginScreenState extends State<LoginScreen>{
           onFacebookTap: () async {
             User? user = await AuthService().signInWithFacebook();
             if (user != null && context.mounted) {
+
+              // !!! Lấy fcmToken và lưu vào Firestore
+              await AuthService().saveFCMTokenToFirestore(user); 
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -294,12 +305,14 @@ class _LoginScreenState extends State<LoginScreen>{
 
       // Sign up text
       Positioned(
-        top: screenHeight * 0.82,
+        //top: screenHeight * 0.82,
+        // Mới - an toàn hơn
+        top: min(screenHeight * 0.82, screenHeight - 60),
         left: screenWidth * 0.2,
         child: Row(
           children: [
             const Text(
-              "Don't have an account?",
+              "Bạn chưa có tài khoản?",
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(width: 5),
@@ -311,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen>{
                 );
               },
               child: const Text(
-                'Sign Up',
+                'Đăng ký',
                 style: TextStyle(
                   color: Colors.black54,
                   fontWeight: FontWeight.w500,

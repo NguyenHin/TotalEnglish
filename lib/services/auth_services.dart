@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
@@ -115,6 +117,22 @@ class AuthService {
       print("✅ Đăng xuất thành công");
     } catch (e) {
       print("❌ Lỗi khi signOut: $e");
+    }
+  }
+
+  Future<void> saveFCMTokenToFirestore(User user) async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    // Lấy token FCM của thiết bị
+    String? fcmToken = await messaging.getToken();
+
+    if (fcmToken != null) {
+      // Lưu token vào Firestore dưới document của user
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'fcmToken': fcmToken,
+      }, SetOptions(merge: true));
+      
+      print("FCM Token saved: $fcmToken");
     }
   }
 }
