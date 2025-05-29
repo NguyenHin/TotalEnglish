@@ -59,60 +59,13 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Divider(thickness: 1, height: 1, color: Colors.black),
 
-                // Mỗi mục sẽ dẫn đến một màn hình khác
                 _buildListTile('Hướng dẫn sử dụng', context, const GuideScreen()),
                 _buildListTile('Điều khoản sử dụng', context, const TermsScreen()),
 
                 const Divider(thickness: 1, height: 24),
 
-                const Text(
-                  'Hỗ trợ trực tuyến',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                // Icon hỗ trợ
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildSupportIcon(FontAwesomeIcons.facebookF, Colors.blue, 'https://www.facebook.com'),
-                    const SizedBox(width: 30),
-                    _buildSupportIcon(FontAwesomeIcons.google, Colors.redAccent, 'https://www.google.com'),
-                    const SizedBox(width: 30),
-                    _buildSupportIcon(Icons.phone, Colors.black87, 'tel:+1234567890'),
-                  ],
-                ),
-
                 const Spacer(),
 
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Thêm hành động đánh giá app
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.lightBlue[300],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'ĐÁNH GIÁ',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 12),
                 const Text(
                   '2025 Copyright TotalEnglish',
@@ -127,7 +80,7 @@ class AboutScreen extends StatelessWidget {
       ),
     );
   }
-  // Hàm build ListTile chuyển trang
+
   static Widget _buildListTile(String title, BuildContext context, Widget nextScreen) {
     return Column(
       children: [
@@ -158,21 +111,6 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  // Icon hỗ trợ (facebook, google, phone)
-  static Widget _buildSupportIcon(IconData icon, Color color, String url) {
-    return GestureDetector(
-      onTap: () async {
-        // TODO: Thêm mở URL bằng url_launcher
-      },
-      child: CircleAvatar(
-        radius: 24,
-        backgroundColor: Colors.white,
-        child: Icon(icon, color: color, size: 30),
-      ),
-    );
-  }
-
-  // Nút quay lại trên góc trái
   static Widget _buildBackButton(BuildContext context) {
     return Positioned(
       left: 10,
@@ -183,19 +121,6 @@ class AboutScreen extends StatelessWidget {
         },
         icon: const Icon(Icons.chevron_left, size: 28),
       ),
-    );
-  }
-}
-
-// Màn hình Hỗ trợ trực tuyến (mẫu)
-class SupportScreen extends StatelessWidget {
-  const SupportScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Hỗ trợ trực tuyến')),
-      body: const Center(child: Text('Thông tin hỗ trợ trực tuyến')),
     );
   }
 }
@@ -228,7 +153,7 @@ class GuideScreen extends StatelessWidget {
             title: '1. Tải và cài đặt ứng dụng',
             content:
             'Bạn có thể tải TotalEnglish từ Google Play Store hoặc App Store tùy thiết bị. '
-            'Sau khi tải về, hãy mở ứng dụng và làm theo các bước đăng ký để bắt đầu học tập.',
+                'Sau khi tải về, hãy mở ứng dụng và làm theo các bước đăng ký để bắt đầu học tập.',
             style: sectionStyle,
           ),
           _buildSection(
@@ -288,6 +213,7 @@ class GuideScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildSection({
     required IconData icon,
     required String title,
@@ -313,7 +239,6 @@ class GuideScreen extends StatelessWidget {
     );
   }
 }
-
 
 // Màn hình Điều khoản sử dụng
 class TermsScreen extends StatelessWidget {
@@ -395,4 +320,3 @@ class TermsScreen extends StatelessWidget {
       ),
     );
   }
-}

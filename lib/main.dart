@@ -9,7 +9,7 @@ import 'package:total_english/screens/home_screen.dart';
 import 'package:total_english/services/streak_services.dart';
 //import 'package:total_english/services/otp_service.dart'; // Import OTPService
 
-// Khai báo RouteObserver
+// ✅ RouteObserver để theo dõi chuyển màn hình
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -19,7 +19,6 @@ final AndroidNotificationChannel channel = AndroidNotificationChannel(
   description: 'Kênh để gửi các thông báo quan trọng của app',
   importance: Importance.high,
 );
-
 
 // ✅ Hàm xử lý thông báo nền
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -52,6 +51,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+
+      // ✅ Cấu hình localization
+      locale: context.locale,
+      supportedLocales: context.supportedLocales,
+      localizationsDelegates: context.localizationDelegates,
+
+      // ✅ Theme hoặc thêm cấu hình chung nếu cần
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.blueAccent,
+      ),
+
+      // ✅ Đợi Firebase khởi tạo trước khi hiển thị màn hình
       home: FutureBuilder(
         future: _initializeFirebase(),
         builder: (context, snapshot) {
@@ -60,9 +72,10 @@ class MyApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           } else if (snapshot.hasError) {
-            return const Scaffold(
-              body: Center(child: Text("Lỗi khi khởi tạo Firebase")),
+            return Scaffold(
+              body: Center(child: Text("firebase_init_error".tr())),
             );
+
           } else {
             // Firebase đã khởi tạo xong
             User? user = FirebaseAuth.instance.currentUser;
@@ -80,7 +93,8 @@ class MyApp extends StatelessWidget {
           }
         },
       ),
-      // Thêm routeObserver vào navigatorObservers
+
+      // ✅ Theo dõi navigation nếu cần (Analytics,...)
       navigatorObservers: [routeObserver],
     );
   }

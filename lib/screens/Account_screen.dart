@@ -5,7 +5,8 @@ import 'package:total_english/screens/about_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
 import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/login_screen.dart';
-import 'package:total_english/screens/change_password_screen.dart'; // 🆕 Import mới
+import 'package:total_english/screens/change_password_screen.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -20,8 +21,6 @@ class _AccountScreenState extends State<AccountScreen> {
   String displayName = "";
   String email = "";
   String? photoUrl;
-
-  String _selectedLanguage = "vi";
 
   @override
   void initState() {
@@ -44,11 +43,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   void _loadUserInfo(User? user) {
     if (user != null) {
-      displayName = user.displayName ?? user.email ?? "Chưa có tên";
+      displayName = user.displayName ?? user.email ?? tr("no_name");
       email = user.email ?? "";
       photoUrl = user.photoURL;
     } else {
-      displayName = "Chưa đăng nhập";
+      displayName = tr("not_logged_in");
       email = "";
       photoUrl = null;
     }
@@ -70,20 +69,16 @@ class _AccountScreenState extends State<AccountScreen> {
                 leading: const Text("🇻🇳", style: TextStyle(fontSize: 20)),
                 title: const Text("Tiếng Việt"),
                 onTap: () {
+                  context.setLocale(const Locale('vi'));
                   Navigator.pop(context);
-                  setState(() {
-                    _selectedLanguage = "vi";
-                  });
                 },
               ),
               ListTile(
                 leading: const Text("🇺🇸", style: TextStyle(fontSize: 20)),
                 title: const Text("English"),
                 onTap: () {
+                  context.setLocale(const Locale('en'));
                   Navigator.pop(context);
-                  setState(() {
-                    _selectedLanguage = "en";
-                  });
                 },
               ),
             ],
@@ -98,12 +93,12 @@ class _AccountScreenState extends State<AccountScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Xác nhận đăng xuất"),
-          content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
+          title: Text(tr("logout_confirm_title")),
+          content: Text(tr("logout_confirm_content")),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Huỷ"),
+              child: Text(tr("cancel")),
             ),
             TextButton(
               onPressed: () async {
@@ -115,7 +110,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       (route) => false,
                 );
               },
-              child: const Text("Đăng xuất"),
+              child: Text(tr("logout")),
             ),
           ],
         );
@@ -125,17 +120,16 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = const Color(0xFFF1F9FF); // pastel xanh nhạt
-
+    final backgroundColor = const Color(0xFFF1F9FF);
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFFBBDEFB),
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          "Tài khoản",
-          style: TextStyle(
+        title: Text(
+          tr("account"),
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.black87,
@@ -165,16 +159,12 @@ class _AccountScreenState extends State<AccountScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          displayName,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                        Text(displayName,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                         if (email.isNotEmpty)
-                          Text(
-                            email,
-                            style: const TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
+                          Text(email,
+                              style: const TextStyle(fontSize: 14, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -185,11 +175,11 @@ class _AccountScreenState extends State<AccountScreen> {
             _buildMenuCard([
               _buildListTile(
                 icon: Icons.person_outline,
-                title: "Thông tin cá nhân",
+                title: tr("personal_info"),
                 onTap: () async {
                   if (currentUser == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Bạn chưa đăng nhập')),
+                      SnackBar(content: Text(tr("not_logged_in"))),
                     );
                     return;
                   }
@@ -215,11 +205,11 @@ class _AccountScreenState extends State<AccountScreen> {
               _divider(),
               _buildListTile(
                 icon: Icons.lock_outline,
-                title: "Đổi mật khẩu",
+                title: tr("change_password"),
                 onTap: () {
                   if (currentUser == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Bạn chưa đăng nhập')),
+                      SnackBar(content: Text(tr("not_logged_in"))),
                     );
                     return;
                   }
@@ -227,7 +217,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ChangePasswordScreen(), // Bạn cần tạo màn hình này
+                      builder: (context) => const ChangePasswordScreen(),
                     ),
                   );
                 },
@@ -235,7 +225,7 @@ class _AccountScreenState extends State<AccountScreen> {
               _divider(),
               _buildListTile(
                 icon: Icons.switch_account_outlined,
-                title: "Chuyển tài khoản",
+                title: tr("switch_account"),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -248,7 +238,7 @@ class _AccountScreenState extends State<AccountScreen> {
             _buildMenuCard([
               _buildListTile(
                 icon: Icons.settings,
-                title: "Cài đặt",
+                title: tr("settings"),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -259,12 +249,14 @@ class _AccountScreenState extends State<AccountScreen> {
               _divider(),
               _buildListTile(
                 icon: Icons.language,
-                title: "Ngôn ngữ",
+                title: tr("language"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _selectedLanguage == "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English",
+                      context.locale.languageCode == "vi"
+                          ? "🇻🇳 Tiếng Việt"
+                          : "🇺🇸 English",
                       style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(width: 10),
@@ -276,7 +268,7 @@ class _AccountScreenState extends State<AccountScreen> {
               _divider(),
               _buildListTile(
                 icon: Icons.info_outline,
-                title: "Giới thiệu",
+                title: tr("about"),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -297,9 +289,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                 ),
                 onPressed: _showLogoutDialog,
-                child: const Text(
-                  "Đăng xuất",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                child: Text(
+                  tr("logout"),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),

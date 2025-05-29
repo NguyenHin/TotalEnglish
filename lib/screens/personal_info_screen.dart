@@ -109,49 +109,38 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   }
 
   Future<void> _saveAndExit() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isLoading = true);
-  String? imageUrl = _photoUrl;
+    setState(() => _isLoading = true);
+    String? imageUrl = _photoUrl;
 
-  if (_pickedImage != null) {
-    imageUrl = await _uploadAvatar(_pickedImage!);
+    if (_pickedImage != null) {
+      imageUrl = await _uploadAvatar(_pickedImage!);
+    }
+
+    final nameParts = _nameController.text.trim().split(' ');
+    final lastName = nameParts.length > 1 ? nameParts.sublist(0, nameParts.length - 1).join(' ') : '';
+    final firstName = nameParts.isNotEmpty ? nameParts.last : '';
+
+    final data = {
+      'firstName': firstName,
+      'lastName': lastName,
+      'phone': _phoneController.text.trim(),
+      'address': _addressController.text.trim(),
+      'gender': _gender,
+      'photoUrl': imageUrl ?? '',
+      'birthDate': _birthDate != null ? Timestamp.fromDate(_birthDate!) : null,
+      'email': widget.user.email,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    await FirebaseFirestore.instance.collection('users').doc(widget.user.uid).set(data, SetOptions(merge: true));
+
+    await widget.user.updateDisplayName(_nameController.text.trim());
+    await widget.user.reload();
+
+    Navigator.pop(context, true);
   }
-
-  final nameParts = _nameController.text.trim().split(' ');
-  final lastName = nameParts.length > 1 ? nameParts.sublist(0, nameParts.length - 1).join(' ') : '';
-  final firstName = nameParts.isNotEmpty ? nameParts.last : '';
-
-  final data = {
-    'firstName': firstName,
-    'lastName': lastName,
-    'phone': _phoneController.text.trim(),
-    'address': _addressController.text.trim(),
-    'gender': _gender,
-    'photoUrl': imageUrl ?? '',
-    'birthDate': _birthDate != null ? Timestamp.fromDate(_birthDate!) : null,
-    'email': widget.user.email,
-    'updatedAt': FieldValue.serverTimestamp(),
-  };
-
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(widget.user.uid)
-      .set(data, SetOptions(merge: true));
-
-  // ✅ Cập nhật displayName & photoURL vào FirebaseAuth
-  await widget.user.updateDisplayName(_nameController.text.trim());
-  if (imageUrl != null) {
-    await widget.user.updatePhotoURL(imageUrl); // 🆕 DÒNG BẠN CẦN THÊM
-  }
-
-  await widget.user.reload();
-  final refreshedUser = FirebaseAuth.instance.currentUser;
-  Navigator.pop(context, true);  // Truyền true về AccountScreen để nó reload user
-
-  }
-
-
   void _pickBirthDate() async {
     final picked = await showDatePicker(
       context: context,

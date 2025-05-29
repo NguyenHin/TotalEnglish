@@ -1,0 +1,24 @@
+{
+  "account": "Account",
+  "personal_info": "Personal Info",
+  "change_password": "Change Password",
+  "switch_account": "Switch Account",
+  "settings": "Settings",
+  "language": "Language",
+  "about": "About",
+  "logout": "Logout",
+  "version": "Version 1.0.0",
+  "logout_confirm": "Confirm Logout",
+  "logout_question": "Are you sure you want to log out of TotalEnglish?",
+  "cancel": "Cancel",
+
+  "login": "Login",
+  "signup": "Sign Up",
+  "email": "Email",
+  "password": "Password",
+  "home": "Home",
+  "setting": "Settings"
+
+
+}
+

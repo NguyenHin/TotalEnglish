@@ -1,0 +1,14 @@
+{
+  "account": "Tài khoản",
+  "personal_info": "Thông tin cá nhân",
+  "change_password": "Đổi mật khẩu",
+  "switch_account": "Chuyển tài khoản",
+  "settings": "Cài đặt",
+  "language": "Ngôn ngữ",
+  "about": "Giới thiệu",
+  "logout": "Đăng xuất",
+  "version": "Phiên bản 1.0.0",
+  "logout_confirm": "Xác nhận đăng xuất",
+  "logout_question": "Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?",
+  "cancel": "Huỷ"
+}
