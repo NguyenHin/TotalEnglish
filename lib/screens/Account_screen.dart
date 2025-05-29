@@ -2,12 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/setting_screen.dart';
 import 'package:total_english/screens/about_screen.dart';
-import 'package:total_english/screens/switch_account_screen.dart';
 import 'package:total_english/screens/personal_info_screen.dart';
-
-import 'package:total_english/screens/main_screen.dart';
-import 'package:total_english/screens/new_password.dart';
-
+import 'package:total_english/screens/switch_account_screen.dart';
+import 'package:total_english/screens/login_screen.dart';
+import 'package:total_english/screens/change_password_screen.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -17,26 +16,42 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  String _selectedLanguage = "vi";
+  User? currentUser;
 
-//   User? _currentUser;
-//   final AuthService _authService = AuthService();
+  String displayName = "";
+  String email = "";
+  String? photoUrl;
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadCurrentUser();
-//   }
+  @override
+  void initState() {
+    super.initState();
 
-//   Future<void> _loadCurrentUser() async {
-//     final user = await _authService.getCurrentUser();
-//     if (mounted) {
-//       setState(() {
-//         _currentUser = user;
-//       });
-//     }
-//   }
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (mounted) {
+        setState(() {
+          currentUser = user;
+          _loadUserInfo(user);
+        });
+      }
+    });
 
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      _loadUserInfo(currentUser);
+    }
+  }
+
+  void _loadUserInfo(User? user) {
+    if (user != null) {
+      displayName = user.displayName ?? user.email ?? tr("no_name");
+      email = user.email ?? "";
+      photoUrl = user.photoURL;
+    } else {
+      displayName = tr("not_logged_in");
+      email = "";
+      photoUrl = null;
+    }
+  }
 
   void _showLanguagePicker() {
     showModalBottomSheet(
@@ -54,9 +69,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 leading: const Text("🇻🇳", style: TextStyle(fontSize: 20)),
                 title: const Text("Tiếng Việt"),
                 onTap: () {
-                  setState(() {
-                    _selectedLanguage = "vi";
-                  });
+                  context.setLocale(const Locale('vi'));
                   Navigator.pop(context);
                 },
               ),
@@ -64,9 +77,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 leading: const Text("🇺🇸", style: TextStyle(fontSize: 20)),
                 title: const Text("English"),
                 onTap: () {
-                  setState(() {
-                    _selectedLanguage = "en";
-                  });
+                  context.setLocale(const Locale('en'));
                   Navigator.pop(context);
                 },
               ),
@@ -77,37 +88,29 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  String get languageLabel {
-    return _selectedLanguage == "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English";
-  }
-
   void _showLogoutDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Xác nhận đăng xuất"),
-          content: const Text("Bạn có chắc chắn muốn thoát khỏi TotalEnglish không?"),
+          title: Text(tr("logout_confirm_title")),
+          content: Text(tr("logout_confirm_content")),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Huỷ"),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(tr("cancel")),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-
-                await _authService.signOut();
-
+                await FirebaseAuth.instance.signOut();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
+                      (route) => false,
                 );
               },
-              child: const Text("Đăng xuất"),
+              child: Text(tr("logout")),
             ),
           ],
         );
@@ -117,20 +120,22 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = const Color(0xFFF1F9FF);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FAFD),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFBBDEFB),
         elevation: 0,
-        title: const Text(
-          "Tài khoản",
-          style: TextStyle(
+        centerTitle: true,
+        title: Text(
+          tr("account"),
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.black87,
           ),
         ),
-        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -139,40 +144,30 @@ class _AccountScreenState extends State<AccountScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFD3E6F6),
+                color: const Color(0xFFD6ECFF),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
-
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 30,
-                    backgroundImage: AssetImage('assets/avatar.jpg'),
+                    backgroundImage: photoUrl != null
+                        ? NetworkImage("$photoUrl?timestamp=${DateTime.now().millisecondsSinceEpoch}")
+                        : const AssetImage('assets/avatar.jpg') as ImageProvider,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text("Tên người dùng",
-                            style: TextStyle(
+                      children: [
+                        Text(displayName,
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Text("Chuyển tài khoản",
-                            style: TextStyle(fontSize: 14, color: Colors.black54)),
+                        if (email.isNotEmpty)
+                          Text(email,
+                              style: const TextStyle(fontSize: 14, color: Colors.grey)),
                       ],
-
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.compare_arrows),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const SwitchAccountScreen()),
-                      );
-                    },
                   ),
                 ],
               ),
@@ -181,68 +176,104 @@ class _AccountScreenState extends State<AccountScreen> {
             _buildMenuCard([
               _buildListTile(
                 icon: Icons.person_outline,
-                title: "Thông tin cá nhân",
-                onTap: () {
-                  Navigator.push(
+                title: tr("personal_info"),
+                onTap: () async {
+                  if (currentUser == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(tr("not_logged_in"))),
+                    );
+                    return;
+                  }
+
+                  final updated = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const PersonalInfoScreen()),
+                      builder: (context) => PersonalInfoScreen(user: currentUser!),
+                    ),
                   );
+
+                  if (updated == true) {
+                    await FirebaseAuth.instance.currentUser?.reload();
+                    final refreshedUser = FirebaseAuth.instance.currentUser;
+
+                    setState(() {
+                      currentUser = refreshedUser;
+                      _loadUserInfo(refreshedUser);
+                    });
+                  }
                 },
               ),
-
               _divider(),
               _buildListTile(
                 icon: Icons.lock_outline,
-                title: "Đổi mật khẩu",
+                title: tr("change_password"),
                 onTap: () {
+                  if (currentUser == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(tr("not_logged_in"))),
+                    );
+                    return;
+                  }
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const NewPassword()),
+                      builder: (context) => const ChangePasswordScreen(),
+                    ),
                   );
                 },
-
+              ),
+              _divider(),
+              _buildListTile(
+                icon: Icons.switch_account_outlined,
+                title: tr("switch_account"),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SwitchAccountScreen()),
+                  );
+                },
               ),
             ]),
             const SizedBox(height: 16),
             _buildMenuCard([
               _buildListTile(
                 icon: Icons.settings,
-                title: "Cài đặt",
+                title: tr("settings"),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const SettingsScreen()),
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
                   );
                 },
               ),
-
               _divider(),
               _buildListTile(
                 icon: Icons.language,
-                title: "Ngôn ngữ",
+                title: tr("language"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(languageLabel, style: const TextStyle(fontSize: 14)),
+                    Text(
+                      context.locale.languageCode == "vi"
+                          ? "🇻🇳 Tiếng Việt"
+                          : "🇺🇸 English",
+                      style: const TextStyle(fontSize: 14),
+                    ),
                     const SizedBox(width: 10),
                     const Icon(Icons.expand_more),
                   ],
                 ),
                 onTap: _showLanguagePicker,
-
               ),
               _divider(),
               _buildListTile(
                 icon: Icons.info_outline,
-                title: "Giới thiệu",
+                title: tr("about"),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const AboutScreen()),
+                    MaterialPageRoute(builder: (context) => const AboutScreen()),
                   );
                 },
               ),
@@ -251,32 +282,24 @@ class _AccountScreenState extends State<AccountScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                //onPressed: _showLogoutDialog,
-
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[200],
+                  backgroundColor: const Color(0xFF64B5F6),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 onPressed: _showLogoutDialog,
-                child: const Text(
-                  "Đăng xuất",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-
+                child: Text(
+                  tr("logout"),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
-            const SizedBox(height: 30),
-            Expanded(
-              child: Center(
-                child: Image.asset(
-                  "assets/icon/panda_icon.png",
-                  height: 220,
-                ),
-              ),
+            const Spacer(),
+            const Text(
+              "Phiên bản 1.0.0",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -284,14 +307,10 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Widget _divider() {
-    return const Divider(height: 1, thickness: 1, color: Colors.black12);
-  }
-
   Widget _buildMenuCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFD3E6F6),
+        color: const Color(0xFFEAF6FF),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(children: children),
@@ -301,57 +320,21 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildListTile({
     required IconData icon,
     required String title,
-    Widget? trailing,
     VoidCallback? onTap,
+    Widget? trailing,
   }) {
     return ListTile(
-      leading: Icon(icon, color: Colors.blue[700]),
-      title: Text(title,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+      leading: Icon(icon, color: Colors.blueAccent),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
       trailing: trailing ?? const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }
 
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            "Bạn có chắc chắn muốn đăng xuất khỏi TotalEnglish không?",
-            style: TextStyle(fontSize: 16),
-          ),
-          actionsPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Hủy"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[300],
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MainScreen()),
-                );
-              },
-              child: const Text("Đăng xuất"),
-            ),
-          ],
-        );
-      },
-    );
+  Widget _divider() {
+    return const Divider(height: 1, indent: 16, endIndent: 16);
   }
 }
-

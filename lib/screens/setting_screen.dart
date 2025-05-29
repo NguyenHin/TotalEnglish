@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -11,56 +13,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEffectsEnabled = true;
   bool _notificationsEnabled = true;
 
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final data = doc.data()?['settings'] ?? {};
+
+    setState(() {
+      _soundEffectsEnabled = data['soundEffects'] ?? true;
+      _notificationsEnabled = data['notifications'] ?? true;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _updateSetting(String key, dynamic value) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('users').doc(user.uid).set({
+      'settings': {key: value}
+    }, SetOptions(merge: true));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: Stack(
         children: [
-          // Nội dung chính
-          Column(
-            children: [
-              const SizedBox(height: 100), // Đẩy nội dung xuống dưới AppBar custom
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildSettingCard(
-                      icon: Icons.music_note,
-                      title: 'Hiệu ứng âm thanh',
-                      value: _soundEffectsEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _soundEffectsEnabled = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSettingCard(
-                      icon: Icons.notifications_active,
-                      title: 'Cho phép nhận thông báo',
-                      value: _notificationsEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _notificationsEnabled = value;
-                        });
-                      },
-                    ),
-                  ],
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            Column(
+              children: [
+                const SizedBox(height: 100),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildSettingCard(
+                        icon: Icons.music_note,
+                        title: 'Hiệu ứng âm thanh',
+                        value: _soundEffectsEnabled,
+                        onChanged: (value) {
+                          setState(() => _soundEffectsEnabled = value);
+                          _updateSetting('soundEffects', value);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSettingCard(
+                        icon: Icons.notifications_active,
+                        title: 'Cho phép nhận thông báo',
+                        value: _notificationsEnabled,
+                        onChanged: (value) {
+                          setState(() => _notificationsEnabled = value);
+                          _updateSetting('notifications', value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          // AppBar tùy chỉnh
+          // Custom AppBar
           Container(
             height: 100,
             padding: const EdgeInsets.only(top: 50),
             color: Colors.white,
-            child: Center(
+            child: const Center(
               child: Text(
                 'Cài đặt',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Koh Santepheap',
                   fontSize: 20,
                   color: Colors.black,
@@ -70,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // Nút quay lại nhỏ gọn
+          // Back button
           _buildBackButton(context),
         ],
       ),
