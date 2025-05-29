@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/setting_screen.dart';
@@ -41,16 +42,24 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  void _loadUserInfo(User? user) {
+  void _loadUserInfo(User? user) async {
     if (user != null) {
       displayName = user.displayName ?? user.email ?? tr("no_name");
       email = user.email ?? "";
-      photoUrl = user.photoURL;
+
+      // Lấy URL ảnh từ Firestore (ví dụ collection 'users', document user.uid)
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        photoUrl = doc.data()?['photoUrl'] ?? user.photoURL;
+      } else {
+        photoUrl = user.photoURL;
+      }
     } else {
       displayName = tr("not_logged_in");
       email = "";
       photoUrl = null;
     }
+    if (mounted) setState(() {});
   }
 
   void _showLanguagePicker() {

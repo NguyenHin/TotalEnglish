@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -32,6 +33,31 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.initState();
     _loadUserInfo();
   }
+
+  Future<String?> _uploadToCloudinary(File imageFile) async {
+  const cloudName = 'dwxivtmbx';  // 👈 Thay tên cloudName ở đây 
+  const uploadPreset = 'unsigned_preset'; // 👈 Thay tên UploadPreset ở đây 
+
+  final url = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+  final response = await request.send();
+
+  if (response.statusCode == 200) {
+    final responseData = await response.stream.bytesToString();
+    final data = json.decode(responseData);
+    return data['secure_url']; // Đây là link ảnh trên Cloudinary
+  } else {
+    debugPrint('Upload failed: ${response.statusCode}');
+    final error = await response.stream.bytesToString();
+    debugPrint('Error body: $error');
+    return null;
+  }
+}
+
+
 
   Future<void> _loadUserInfo() async {
     final doc = await FirebaseFirestore.instance.collection('users').doc(widget.user.uid).get();
@@ -97,16 +123,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  Future<String?> _uploadAvatar(File imageFile) async {
-    try {
-      final ref = FirebaseStorage.instance.ref().child('user_avatars/${widget.user.uid}.jpg');
-      final snapshot = await ref.putFile(imageFile);
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi upload ảnh: $e')));
-      return null;
-    }
-  }
 
   Future<void> _saveAndExit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -115,7 +131,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     String? imageUrl = _photoUrl;
 
     if (_pickedImage != null) {
-      imageUrl = await _uploadAvatar(_pickedImage!);
+      imageUrl = await _uploadToCloudinary(_pickedImage!);
     }
 
     final nameParts = _nameController.text.trim().split(' ');
