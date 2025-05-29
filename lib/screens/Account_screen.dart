@@ -152,7 +152,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     radius: 30,
                     backgroundImage: photoUrl != null
                         ? NetworkImage("$photoUrl?timestamp=${DateTime.now().millisecondsSinceEpoch}")
-                        : const AssetImage('assets/icon/panda_icon.png') as ImageProvider,
+                        : const AssetImage('assets/icon/no_background.png') as ImageProvider,
                   ),
                   const SizedBox(width: 12),
                   Expanded(

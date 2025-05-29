@@ -187,7 +187,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         ? FileImage(_pickedImage!)
                         : (_photoUrl != null && _photoUrl!.isNotEmpty
                         ? NetworkImage(_photoUrl!)
-                        : const AssetImage('assets/icon/panda_icon.png')) as ImageProvider,
+                        : const AssetImage('assets/icon/no_background.png')) as ImageProvider,
                   ),
                   Positioned(
                     bottom: 0,
