@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
@@ -16,11 +18,13 @@ class _SwitchAccountScreenState extends State<SwitchAccountScreen> {
   void initState() {
     super.initState();
     currentUser = FirebaseAuth.instance.currentUser;
+    _loadUserPhotoUrl(); // 🔥 thêm dòng này vào đây
   }
 
   void _refreshUser() {
     setState(() {
       currentUser = FirebaseAuth.instance.currentUser;
+      _loadUserPhotoUrl(); // thêm dòng này
     });
   }
 
@@ -45,6 +49,21 @@ class _SwitchAccountScreenState extends State<SwitchAccountScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Đã đăng xuất tài khoản')));
   }
+  
+  String? photoUrl;
+  void _loadUserPhotoUrl() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (doc.exists && doc.data()?['photoUrl'] != null) {
+      photoUrl = doc['photoUrl'];
+    } else {
+      photoUrl = user.photoURL;
+    }
+
+    if (mounted) setState(() {});
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -89,8 +108,10 @@ class _SwitchAccountScreenState extends State<SwitchAccountScreen> {
       );
     }
 
-    final photoUrl =
-        currentUser!.photoURL ?? 'assets/images/default_avatar.png';
+    final avatar = (photoUrl != null && photoUrl!.startsWith('http'))
+      ? NetworkImage("$photoUrl?timestamp=${DateTime.now().millisecondsSinceEpoch}")
+      : const AssetImage('assets/icon/no_background.png') as ImageProvider;
+
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -124,12 +145,9 @@ class _SwitchAccountScreenState extends State<SwitchAccountScreen> {
                   vertical: 20,
                 ),
                 leading: CircleAvatar(
-                  radius: 32,
-                  backgroundImage:
-                      photoUrl.startsWith('http')
-                          ? NetworkImage(photoUrl)
-                          : AssetImage(photoUrl) as ImageProvider,
-                ),
+  radius: 32,
+  backgroundImage: avatar,
+),
                 title: Text(
                   currentUser!.displayName ?? 'Không có tên',
                   style: const TextStyle(
