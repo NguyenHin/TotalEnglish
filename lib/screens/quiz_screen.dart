@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:total_english/services/streak_services.dart';
+import 'package:total_english/widgets/completion_dialog.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -30,6 +31,7 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _isLoadingData = true; // Trạng thái đang tải dữ liệu
   String _loadingErrorMessage = ''; // Thông báo lỗi khi tải dữ liệu
   bool _streakUpdated = false;
+  bool _showCompletionDialog = false; // thêm biến quản lý dialog
 
   @override
   void initState() {
@@ -130,9 +132,9 @@ class _QuizScreenState extends State<QuizScreen> {
           _streakUpdated = true; // Đảm bảo chỉ gọi 1 lần
           updateStreak();  
         }
-          if (_isCardMatched.every((matched) => matched)) {
+          if (_isCardMatched.every((matched) => matched)) { //_isCardMatched[firstIndex] && _isCardMatched[secondIndex]
             _isQuizOver = true;
-            
+            _showCompletionDialog = true; // bật dialog khi hoàn thành
           }
         });
       } else {
@@ -206,10 +208,10 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-    onWillPop: () async {
-      widget.onCompleted?.call('quiz', _isQuizOver);
-      return true; // cho phép pop
-    },
+      onWillPop: () async {
+        widget.onCompleted?.call('quiz', _isQuizOver);
+        return true;
+      },
       child: Scaffold(
         body: SafeArea(
           child: Stack(
@@ -240,71 +242,24 @@ class _QuizScreenState extends State<QuizScreen> {
                           itemBuilder: (context, index) => _buildQuizCard(context, index),
                         ),
                       ),
-                    if (_isQuizOver)
-                      Column(
-                        children: [
-                          const Text(
-                            '✨ Chúc mừng bạn đã hoàn thành! ✨',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: _isLoadingData ? null : _resetQuiz,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF89B3D4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Chơi lại',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: () {
-                                  if (widget.onCompleted != null) {
-                                    widget.onCompleted!('quiz', _isQuizOver);
-                                  }
-                                  Navigator.pop(context);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF89B3D4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Về bài học',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    else
-                      ElevatedButton(
-                        onPressed: _isLoadingData ? null : _resetQuiz,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF89B3D4),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
-                        child: const Text(
-                          'Chơi lại',
-                          style: TextStyle(color: Colors.white),
+                    const SizedBox(height: 15),
+                    ElevatedButton(
+                      onPressed: _isLoadingData ? null : _resetQuiz,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF89B3D4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
                         ),
                       ),
+                      child: const Text(
+                        'Chơi lại',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ],
                 ),
               ),
+
               Positioned(
                 top: 30,
                 left: 10,
@@ -318,6 +273,20 @@ class _QuizScreenState extends State<QuizScreen> {
                   icon: const Icon(Icons.chevron_left, size: 28),
                 ),
               ),
+
+              // Hiện dialog khi hoàn thành
+              if (_showCompletionDialog)
+                CompletionDialog(
+                  title: 'Bạn đã hoàn thành phần Quiz! 🎉',
+                  message: 'Hãy quay lại bài học để tiếp tục nhé.',
+                  onConfirmed: () {
+                    widget.onCompleted?.call('quiz', true);
+                    setState(() {
+                      _showCompletionDialog = false;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
             ],
           ),
         ),

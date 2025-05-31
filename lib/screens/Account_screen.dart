@@ -28,12 +28,8 @@ class _AccountScreenState extends State<AccountScreen> {
     super.initState();
 
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (mounted) {
-        setState(() {
-          currentUser = user;
-          _loadUserInfo(user);
-        });
-      }
+      currentUser = user;
+      _loadUserInfo(user); // <- bên trong tự gọi setState khi load xong
     });
 
     currentUser = FirebaseAuth.instance.currentUser;
@@ -102,14 +98,34 @@ class _AccountScreenState extends State<AccountScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(tr("logout_confirm_title")),
-          content: Text(tr("logout_confirm_content")),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(tr("cancel")),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            tr("Đăng xuất khỏi tài khoản của bạn."),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
-            TextButton(
+          ),
+
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                side: BorderSide(color: Colors.grey.shade400),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                tr("Hủy"),
+                style: TextStyle(color: Colors.grey[700], fontSize: 16),
+              ),
+            ),
+            ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 await FirebaseAuth.instance.signOut();
@@ -119,7 +135,17 @@ class _AccountScreenState extends State<AccountScreen> {
                       (route) => false,
                 );
               },
-              child: Text(tr("logout")),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                tr("Đăng xuất"),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );

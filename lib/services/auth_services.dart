@@ -129,7 +129,7 @@ class AuthService {
       // Lưu token vào Firestore dưới document của user
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'fcmToken': fcmToken,
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)); //merge để không ghi đè dữ liệu khác
       
       print("FCM Token saved: $fcmToken");
     }

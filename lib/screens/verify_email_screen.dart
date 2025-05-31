@@ -56,7 +56,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       final isVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
       if (isVerified) {
         timer.cancel();
-        if (mounted) {
+        if (mounted) { //mounted: widget này còn đang hiển thị trên màn hình?
+        // nếu màn hình này còn đang hiển thị thì mới:
+        // ✅ hiện snackbar
+        // ✅ chuyển sang HomeScreen
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Email của bạn đã được xác minh!')),
           );
