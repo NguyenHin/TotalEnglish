@@ -246,7 +246,7 @@ class _StreakScreenState extends State<StreakScreen> {
                     ],
                   ),
                   child: Text(
-                    "You're on a $currentStreak day streak",
+                    "Bạn đang duy trì chuỗi $currentStreak ngày liên tiếp.",
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 20, color: Colors.black),
                   ),
