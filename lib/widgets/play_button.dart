@@ -6,14 +6,18 @@ class PlayButton extends StatefulWidget {
   final Color backgroundColor;
   final Color iconColor;
   final String? label;
+  final ValueNotifier<bool> isPlayingNotifier;
+
 
   const PlayButton({
     Key? key,
     required this.onPressed,
+    required this.isPlayingNotifier,
     this.size = 60,
     this.backgroundColor = const Color(0xFF89B3D4),
     this.iconColor = Colors.white,
     this.label,
+
   }) : super(key: key);
 
   @override
@@ -21,72 +25,78 @@ class PlayButton extends StatefulWidget {
 }
 
 class _PlayButtonState extends State<PlayButton> {
-  bool isPressed = false; // Trạng thái để biết nút đang được nhấn
+  bool isPressed = false;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InkWell(
-          onTap: () {
-            widget.onPressed();
+Widget build(BuildContext context) {
+  return ValueListenableBuilder<bool>(
+    valueListenable: widget.isPlayingNotifier,
+    builder: (context, isPlaying, child) {
+      bool animate = isPlaying || isPressed;
 
-            // Tạo hiệu ứng nhấn vào nút một lần
-            setState(() {
-              isPressed = true; 
-            });
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: () {
+              widget.onPressed();
 
-            // Sau khoảng thời gian ngắn, thu nhỏ nút lại
-            Future.delayed(Duration(milliseconds: 300), () {
               setState(() {
-                isPressed = false; // Sau 200ms, thu nhỏ lại
+                isPressed = true;
               });
-            });
-          },
-          borderRadius: BorderRadius.circular(widget.size),
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              color: widget.backgroundColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25), // Bóng mạnh hơn khi nhấn
-                  blurRadius: isPressed ? 12 : 16, // Bóng rõ hơn khi nhấn
-                  offset: Offset(0, 8), // Đẩy bóng xuống dưới để tạo hiệu ứng nổi
+
+              Future.delayed(const Duration(milliseconds: 300), () {
+                setState(() {
+                  isPressed = false;
+                });
+              });
+            },
+            borderRadius: BorderRadius.circular(widget.size),
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                color: widget.backgroundColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: animate ? 12 : 16,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.4),
+                    blurRadius: animate ? 16 : 20,
+                    offset: const Offset(0, -8),
+                  ),
+                ],
+              ),
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 200),
+                scale: animate ? 1.4 : 1.0,
+                child: Icon(
+                  Icons.volume_up_outlined,
+                  size: widget.size * 0.5,
+                  color: widget.iconColor,
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.4), // Bóng sáng ở trên
-                  blurRadius: isPressed ? 16 : 20, // Bóng sáng rõ hơn khi nhấn
-                  offset: Offset(0, -8), // Đẩy bóng sáng lên trên
-                ),
-              ],
-            ),
-            child: AnimatedScale(
-              duration: Duration(milliseconds: 200), // Thời gian hiệu ứng lâu hơn
-              scale: isPressed ? 1.4 : 1.0, // Phóng to rõ rệt khi nhấn
-              child: Icon(
-                Icons.volume_up_outlined,
-                size: widget.size * 0.5,
-                color: widget.iconColor,
               ),
             ),
           ),
-        ),
-        if (widget.label != null) ...[
-          SizedBox(height: 8),
-          Text(
-            widget.label!,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[700],
+          if (widget.label != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              widget.label!,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
             ),
-          ),
+          ],
         ],
-      ],
-    );
-  }
+      );
+    },
+  );
+}
+
 }

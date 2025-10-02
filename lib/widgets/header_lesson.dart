@@ -13,7 +13,7 @@ class HeaderLesson extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Container(
         width: 330, // Set the width
         height: 55, // Set the height

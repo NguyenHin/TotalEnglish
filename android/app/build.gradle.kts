@@ -34,6 +34,26 @@ android {
         versionName = flutter.versionName
     }
 
+    // signingConfigs {
+    //     create("release") {
+    //         storeFile = file(System.getProperty("user.home") + "/totalenglish-key.jks")
+    //         storePassword = "123456"
+    //         keyAlias = "totalenglish"
+    //         keyPassword = "123456"
+    //     }
+    // }
+    // buildTypes {
+    //     getByName("release") {
+    //         signingConfig = signingConfigs.getByName("debug")
+    //         //signingConfig = signingConfigs.getByName("release") sửa xong sai
+    //         isMinifyEnabled = false
+    //         isShrinkResources = false
+    //         proguardFiles(
+    //             getDefaultProguardFile("proguard-android-optimize.txt"),
+    //             file("proguard-rules.pro")
+    //         )
+    //     }
+    // }
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
@@ -41,6 +61,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
 }
 
 flutter {

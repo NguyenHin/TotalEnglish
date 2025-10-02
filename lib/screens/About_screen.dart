@@ -189,7 +189,7 @@ class GuideScreen extends StatelessWidget {
           ),
           _buildSection(
             icon: Icons.quiz,
-            title: '6. Làm bài kiểm tra',
+            title: '6. Mini Game',
             content:
             'Sau khi học xong, bạn làm các bài trắc nghiệm để kiểm tra kiến thức. Kết quả sẽ được lưu và phân tích để cải thiện học tập.',
             style: sectionStyle,
