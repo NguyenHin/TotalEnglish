@@ -8,7 +8,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:total_english/screens/login_screen.dart';
 import 'package:total_english/screens/home_screen.dart';
 import 'package:total_english/services/streak_services.dart';
-import 'package:total_english/services/otp_service.dart';
+
 
 // RouteObserver để theo dõi chuyển màn hình
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
@@ -36,8 +36,6 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   _setupFirebaseMessagingListener();
 
-  // Gọi OTP Service
-  OTPService.configOTP();
 
   runApp(
     EasyLocalization(
@@ -80,10 +78,13 @@ class MyApp extends StatelessWidget {
               body: Center(child: Text("firebase_init_error".tr())),
             );
           } else {
+            /*dùng StreamBuilder vì cần lắng nghe trạng thái đăng nhập thay đổi theo thời gian thực.
+Nếu chỉ dùng Future thì nó chỉ check một lần, không thể cập nhật khi user login/logout.
+→ Điều đó sẽ dẫn đến việc: đăng nhập rồi nhưng không vào HomeScreen, hoặc đăng xuất rồi mà vẫn ở lại trong app. */
             return StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
+              stream: FirebaseAuth.instance.authStateChanges(), //lắng nghe trạng thái user theo thời gian thưc
               builder: (context, userSnapshot) {
-                if (userSnapshot.connectionState == ConnectionState.active) {
+                if (userSnapshot.connectionState == ConnectionState.active) { //if stream đã hđ
                   final user = userSnapshot.data;
                   if (user != null) {
                     // Kiểm tra và reset streak nếu cần

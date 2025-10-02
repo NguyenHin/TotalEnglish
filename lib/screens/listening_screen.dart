@@ -239,14 +239,14 @@ class _ListeningScreenState extends State<ListeningScreen> {
 
                 return Column(
                   children: [
-                    PlayButton(
-                      onPressed: () {
-                        if (wordToSpeak.isNotEmpty) {
-                          _ttsService.speak(wordToSpeak);
-                        }
-                      },
-                      label: "Bấm vào đây để nghe",
-                    ),
+                    // PlayButton(
+                    //   onPressed: () {
+                    //     if (wordToSpeak.isNotEmpty) {
+                    //       _ttsService.speak(wordToSpeak);
+                    //     }
+                    //   },
+                    //   label: "Bấm vào đây để nghe",
+                    // ),
                     const SizedBox(height: 30),
                     Container(
                       width: 265,

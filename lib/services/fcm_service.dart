@@ -8,7 +8,7 @@ Future<void> sendPushNotificationWithHttpV1({
   required String title,
   required String body,
 }) async {
-  final serviceAccountJsonString = await loadServiceAccountJson();
+  final serviceAccountJsonString = await loadServiceAccountJson();  
   final serviceAccount = ServiceAccountCredentials.fromJson(jsonDecode(serviceAccountJsonString));
 
   final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
@@ -17,6 +17,7 @@ Future<void> sendPushNotificationWithHttpV1({
 
   final projectId = jsonDecode(serviceAccountJsonString)['project_id'];
 
+  //endpoint của FCM HTTP v1 để gửi noti.
   final url = Uri.parse(
       'https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
 

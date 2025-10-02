@@ -400,16 +400,16 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              PlayButton(
-                                onPressed: () {
-                                  if (word.isNotEmpty) {
-                                    _ttsService.speak(word);
-                                  } else {
-                                    print("Không có từ để phát âm ở trang này.");
-                                  }
-                                },
-                                label: "Nghe",
-                              ),
+                              // PlayButton(
+                              //   onPressed: () {
+                              //     if (word.isNotEmpty) {
+                              //       _ttsService.speak(word);
+                              //     } else {
+                              //       print("Không có từ để phát âm ở trang này.");
+                              //     }
+                              //   },
+                              //   label: "Nghe",
+                              // ),
                               const SizedBox(width: 40),
                               _buildSpeakButton(), // Sử dụng nút nói động
                             ],
