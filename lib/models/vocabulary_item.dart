@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum ActivityType { multipleChoice, fillInBlank }
+enum ActivityType { multipleChoice, fillInBlank, letterTiles }
 
 class VocabularyItem {
   final QueryDocumentSnapshot doc;
