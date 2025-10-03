@@ -19,22 +19,31 @@ class AnimatedOverlayDialog extends StatefulWidget {
 class _AnimatedOverlayDialogState extends State<AnimatedOverlayDialog>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<Offset> _slideAnimation;
-  late final Animation<double> _fadeAnimation;
+  // ✅ DÙNG SCALE VÀ SLIDE NHẸ CHO HIỆU ỨNG NHẢY/NẨY
+  late final Animation<double> _scaleAnimation;
+  late final Animation<Offset> _slideAnimation; 
+
+  // Định nghĩa màu sắc cố định
+  final Color correctColor = const Color(0xFF4CAF50); // Xanh lá đậm
+  final Color wrongColor = const Color(0xFFE53935); // Đỏ đậm
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400), // Tăng thời gian animation
       vsync: this,
     );
+    
+    // Animation trượt từ dưới lên (Offset(0, 0.3))
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.4),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    // Animation phóng to/thu nhỏ (Hiệu ứng nảy/bounce)
+    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.elasticOut)); // ✅ Dùng Curves.elasticOut!
 
     _controller.forward();
   }
@@ -46,72 +55,102 @@ class _AnimatedOverlayDialogState extends State<AnimatedOverlayDialog>
   }
 
   @override
-  Widget build(BuildContext context) {
+Widget build(BuildContext context) {
+    // Màu sắc nền và nút dựa trên kết quả
+    final Color primaryColor = widget.isCorrect ? correctColor : wrongColor;
+
     return Positioned(
-      bottom: 100,
+      bottom: 60,
       left: 0,
       right: 0,
       child: SlideTransition(
         position: _slideAnimation,
-        child: FadeTransition(
-          opacity: _fadeAnimation,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
           child: Material(
             color: Colors.transparent,
             child: Center(
               child: Container(
-                width: MediaQuery.of(context).size.width * 0.95,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                width: MediaQuery.of(context).size.width * 0.9,
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
+                  // ✅ Đặt MÀU NỀN CONTAINER theo kết quả
+                  color: primaryColor, 
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
+                      color: Colors.black.withOpacity(0.3), // Đổi màu bóng sang đen
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // ✅ ICON VÀ TEXT MÀU TRẮNG
+                    Icon(
+                      widget.isCorrect ? Icons.check_circle_outline : Icons.cancel_outlined,
+                      color: Colors.white, // Màu trắng
+                      size: 48,
+                    ),
+                    const SizedBox(height: 12),
+                    
                     Text(
-                      widget.isCorrect ? "Chính xác ✅" : "Không chính xác ❌",
+                      widget.isCorrect ? "Chính xác!" : "Sai rồi!",
                       style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white, // Màu trắng
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    
                     if (!widget.isCorrect)
                       Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
+                        padding: const EdgeInsets.only(top: 10.0),
                         child: Text(
-                          "Đáp án: ${widget.correctAnswer}",
+                          "Đáp án đúng là:",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white.withOpacity(0.8), // Trắng mờ
+                          ),
+                        ),
+                      ),
+                    
+                    if (!widget.isCorrect)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          widget.correctAnswer,
                           style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.black,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white, // Màu trắng
                           ),
                           textAlign: TextAlign.center,
                         ),
                       ),
-                    const SizedBox(height: 16),
+                    
+                    // Nút Tiếp tục
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              widget.isCorrect ? Colors.green : Colors.red,
-                          foregroundColor: Colors.white,
+                          // ✅ Nền Nút MÀU TRẮNG
+                          backgroundColor: Colors.white,
+                          // ✅ Chữ Nút MÀU CHỦ ĐẠO (primaryColor)
+                          foregroundColor: primaryColor, 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 5,
                         ),
                         onPressed: widget.onContinue,
                         child: const Text(
                           "Tiếp tục",
-                          style: TextStyle(fontSize: 18),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -123,5 +162,5 @@ class _AnimatedOverlayDialogState extends State<AnimatedOverlayDialog>
         ),
       ),
     );
-  }
+}
 }

@@ -4,10 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
-import 'package:total_english/widgets/completion_dialog.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:total_english/widgets/play_button.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:total_english/widgets/animated_overlay_dialog.dart';
 
 class SpeakingScreen extends StatefulWidget {
   final String lessonId;
@@ -36,9 +36,15 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   bool _isLessonCompleted = false; // Theo dõi trạng thái hoàn thành
   bool _showCompletionDialog = false;
 
-  
+  // thêm mới 
+  bool _showOverlayDialog = false;
+  bool _lastAnswerCorrect = false;
+  String _lastCorrectWord = '';
+
 
   final Set<int> _spokenCorrectly = {}; // Theo dõi các từ đã nói đúng
+
+ final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier(false);
 
   @override
   void initState() {
@@ -62,6 +68,11 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       setState(() {
         _isLoading = false;
       });
+
+      // ⭐ MỚI: auto play từ đầu tiên
+      if (_vocabularyList.isNotEmpty) {
+        _autoPlayWord(0);
+      }
     } catch (error) {
       setState(() {
         _isLoading = false;
@@ -70,6 +81,20 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       print("Lỗi tải từ vựng cho bài học ${widget.lessonId}: $error");
     }
   }
+
+  // ⭐ MỚI: Hàm auto play word
+  Future<void> _autoPlayWord(int index) async {
+    if (index < 0 || index >= _vocabularyList.length) return;
+    final wordData = _vocabularyList[index].data() as Map<String, dynamic>?;
+    final word = wordData?['word'] as String? ?? '';
+
+    if (word.isNotEmpty) {
+      _isPlayingNotifier.value = true;
+      await _ttsService.speak(word);
+      _isPlayingNotifier.value = false;
+    }
+  }
+
 
   void _startListening() async {
   _cancelListeningTimer(); // Hủy timer cũ nếu có
@@ -226,8 +251,29 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
     });
 
     // 👇 Chỉ update streak nếu nói đúng
-    if (isCorrect) updateStreak();
+     if (isCorrect) {
+    _spokenCorrectly.add(_currentPage);
+    hintMessage = 'Đúng! 🎉';
+
+    if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
+      setState(() {
+        _isLessonCompleted = true;
+        _showCompletionDialog = true;
+      });
+      widget.onCompleted?.call('speaking', true);
+    }
+  } else if (spokenWord.isNotEmpty) {
+    hintMessage = 'Chưa đúng, thử lại.';
   }
+
+  setState(() {
+    _speakingHint = hintMessage;
+    _lastAnswerCorrect = isCorrect;
+    _lastCorrectWord = correctWord;
+    _showOverlayDialog = true; // bật overlay
+  });
+}
+
 
 
   Widget _buildSpeakButton() {
@@ -292,6 +338,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
     },
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),
+        resizeToAvoidBottomInset: true,
         body: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: () {
@@ -302,19 +349,38 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
             child: Stack(
               children: [
                 _buildBackButton(context),
-                _buildHeaderLesson(context),
+            
                 _buildSpeakingForm(context),
-                if (_showCompletionDialog)    //Gọi dialog khi hoàn thành
-                  CompletionDialog(
-                    title: 'Bạn đã hoàn thành phần luyện nói! 🎉',
-                    message: 'Hãy quay lại bài học để tiếp tục nhé.',
-                    onConfirmed: () {
+
+                 if (_showOverlayDialog)   // 👉 Thêm overlay khi nói đúng/sai
+                  AnimatedOverlayDialog(
+                    correctAnswer: _lastCorrectWord,
+                    isCorrect: _lastAnswerCorrect,
+                    onContinue: () {
                       setState(() {
-                        _showCompletionDialog = false;
+                        _showOverlayDialog = false;
                       });
-                      Navigator.pop(context);
+
+                      if (_lastAnswerCorrect && _currentPage < _vocabularyList.length - 1) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                        _autoPlayWord(_currentPage + 1);
+                      }
                     },
                   ),
+              //   if (_showCompletionDialog)    //Gọi dialog khi hoàn thành
+              //     // CompletionDialog(
+              //     //   title: 'Bạn đã hoàn thành phần luyện nói! 🎉',
+              //     //   message: 'Hãy quay lại bài học để tiếp tục nhé.',
+              //     //   onConfirmed: () {
+              //     //     setState(() {
+              //     //       _showCompletionDialog = false;
+              //     //     });
+              //     //     Navigator.pop(context);
+              //     //   },
+                  // ),
               ],
             ),
           ),
@@ -334,29 +400,31 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       return const Center(child: Text('Không có từ vựng để luyện nói.'));
     }
 
-    return Positioned(
-      top: 100,
-      left: 22,
-      right: 22,
+     return Positioned.fill( // 👉 dùng fill để fit toàn màn
+     child: SafeArea( // 👉 chống tràn tai thỏ
       child: Column(
         children: [
           HeaderLesson(
             title: 'Speaking (${_spokenCorrectly.length}/${_vocabularyList.length})',
             color: const Color(0xFF89B3D4),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 650,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _vocabularyList.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPage = index;
-                  _recognizedText = '';
-                  _speakingHint = '';
-                });
-              },
+          const SizedBox(height: 16),
+           // Dùng Expanded thay cho height fix cứng
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(), // ❌ không cho vuốt
+                itemCount: _vocabularyList.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                    _recognizedText = '';
+                    _speakingHint = '';
+                  });
+                  _autoPlayWord(index);
+                },
+
+              
               itemBuilder: (context, index) {
                 final wordData = _vocabularyList[index].data() as Map<String, dynamic>?;
                 final word = wordData?['word'] as String? ?? '';
@@ -373,6 +441,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(20.0),
+                      child: SingleChildScrollView(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -400,20 +469,15 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // PlayButton(
-                              //   onPressed: () {
-                              //     if (word.isNotEmpty) {
-                              //       _ttsService.speak(word);
-                              //     } else {
-                              //       print("Không có từ để phát âm ở trang này.");
-                              //     }
-                              //   },
-                              //   label: "Nghe",
-                              // ),
+                              PlayButton(
+                                onPressed: () async => await _autoPlayWord(index),
+                                isPlayingNotifier: _isPlayingNotifier, // ⭐ MỚI
+                              ),
                               const SizedBox(width: 40),
-                              _buildSpeakButton(), // Sử dụng nút nói động
+                              _buildSpeakButton(),
                             ],
                           ),
+                      
                           const SizedBox(height: 30),
                           Text(
                             "Bạn đã nói: $_recognizedText",
@@ -440,7 +504,8 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                       ),
                     ),
                   ),
-                );
+                ),
+              );
               },
             ),
           ),
@@ -463,13 +528,14 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildBackButton(BuildContext context) {
     return Positioned(
       left: 10,
-      top: 50,
+      top: MediaQuery.of(context).padding.top + 10, // 👈 auto căn theo notch
       child: IconButton(
         onPressed: () {
         if (!_isLessonCompleted) {
@@ -485,17 +551,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
     );
   }
 
-  Widget _buildHeaderLesson(BuildContext context) {
-    return Positioned(
-      top: 100,
-      left: 22,
-      right: 22,
-      child: HeaderLesson(
-        title: 'Speaking (${_spokenCorrectly.length}/${_vocabularyList.length})',
-        color: const Color(0xFF89B3D4),
-      ),
-    );
-  }
+  
 
   @override
   void dispose() {

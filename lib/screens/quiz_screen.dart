@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:total_english/services/streak_services.dart';
-import 'package:total_english/widgets/completion_dialog.dart';
-import 'package:total_english/widgets/header_lesson.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:total_english/widgets/header_lesson.dart';
+import 'package:total_english/widgets/final_score_dialog.dart';
+import 'package:total_english/services/streak_services.dart';
 
-// Định nghĩa model cho một cặp từ và ảnh
 class MatchingPair {
   final String word;
   final String imagePath;
@@ -14,7 +13,7 @@ class MatchingPair {
 
 class QuizScreen extends StatefulWidget {
   final String lessonId;
-  final Function(String activity, bool isCompleted)? onCompleted; // Thêm callback onCompleted
+  final Function(String activity, bool isCompleted)? onCompleted;
 
   const QuizScreen({super.key, required this.lessonId, this.onCompleted});
 
@@ -23,15 +22,15 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  List<dynamic> _quizItems = []; // Danh sách các mục (từ hoặc ảnh) trong trò chơi
-  List<int?> _currentlyFlippedIndices = [null, null]; // Danh sách index của hai ô đang được lật
-  List<bool> _isCardFlipped = []; // Trạng thái lật của từng ô
-  List<bool> _isCardMatched = []; // Trạng thái khớp của từng ô
-  bool _isQuizOver = false; // Trạng thái trò chơi đã kết thúc
-  bool _isLoadingData = true; // Trạng thái đang tải dữ liệu
-  String _loadingErrorMessage = ''; // Thông báo lỗi khi tải dữ liệu
+  List<dynamic> _quizItems = [];
+  List<int?> _currentlyFlippedIndices = [null, null];
+  List<bool> _isCardFlipped = [];
+  List<bool> _isCardMatched = [];
+  bool _isQuizOver = false;
+  bool _isLoadingData = true;
+  String _loadingErrorMessage = '';
   bool _streakUpdated = false;
-  bool _showCompletionDialog = false; // thêm biến quản lý dialog
+  bool _showCompletionDialog = false;
 
   @override
   void initState() {
@@ -39,29 +38,29 @@ class _QuizScreenState extends State<QuizScreen> {
     _loadQuizVocabulary(widget.lessonId);
   }
 
-  // Tải danh sách từ vựng cho quiz từ Firestore
   Future<void> _loadQuizVocabulary(String lessonId) async {
     setState(() {
       _isLoadingData = true;
       _loadingErrorMessage = '';
     });
+
     try {
-      final vocabularySnapshot = await FirebaseFirestore.instance
+      final snapshot = await FirebaseFirestore.instance
           .collection('lessons')
           .doc(lessonId)
           .collection('vocabulary')
           .get();
 
-      final List<MatchingPair> vocabularyPairs = vocabularySnapshot.docs
+      final vocabPairs = snapshot.docs
           .map((doc) => MatchingPair(
-                word: doc.data()['word'] as String? ?? '',
-                imagePath: doc.data()['imageURL'] as String? ?? '',
+                word: doc.data()['word'] ?? '',
+                imagePath: doc.data()['imageURL'] ?? '',
               ))
           .where((pair) => pair.word.isNotEmpty && pair.imagePath.isNotEmpty)
           .toList();
 
-      vocabularyPairs.shuffle();
-      final selectedPairs = vocabularyPairs.take(10).toList();
+      vocabPairs.shuffle();
+      final selectedPairs = vocabPairs.take(10).toList();
 
       _quizItems = [];
       for (final pair in selectedPairs) {
@@ -86,12 +85,6 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
-  // Làm mới trò chơi
-  void _resetQuiz() {
-    _loadQuizVocabulary(widget.lessonId);
-  }
-
-  // Xử lý sự kiện lật một ô
   void _handleCardTap(int index) {
     if (!_isCardFlipped[index] &&
         _currentlyFlippedIndices[1] == null &&
@@ -104,14 +97,12 @@ class _QuizScreenState extends State<QuizScreen> {
           _currentlyFlippedIndices[0] = index;
         } else {
           _currentlyFlippedIndices[1] = index;
-          // Delay ngắn trước khi kiểm tra khớp
           Future.delayed(const Duration(milliseconds: 300), _checkMatch);
         }
       });
     }
   }
 
-  // Kiểm tra xem hai ô đã lật có khớp nhau không
   void _checkMatch() {
     final firstIndex = _currentlyFlippedIndices[0];
     final secondIndex = _currentlyFlippedIndices[1];
@@ -121,24 +112,22 @@ class _QuizScreenState extends State<QuizScreen> {
       final secondItem = _quizItems[secondIndex];
 
       if (firstItem['match'] == secondItem['match']) {
-        // Tìm thấy cặp khớp
         setState(() {
           _isCardMatched[firstIndex] = true;
           _isCardMatched[secondIndex] = true;
           _currentlyFlippedIndices = [null, null];
 
-          // Cập nhật streak ngay khi lật đúng cặp
-        if (!_streakUpdated) {
-          _streakUpdated = true; // Đảm bảo chỉ gọi 1 lần
-          updateStreak();  
-        }
-          if (_isCardMatched.every((matched) => matched)) { //_isCardMatched[firstIndex] && _isCardMatched[secondIndex]
+          if (!_streakUpdated) {
+            _streakUpdated = true;
+            updateStreak();
+          }
+
+          if (_isCardMatched.every((m) => m)) {
             _isQuizOver = true;
-            _showCompletionDialog = true; // bật dialog khi hoàn thành
+            _showCompletionDialog = true;
           }
         });
       } else {
-        // Không khớp, lật lại sau một khoảng thời gian
         Future.delayed(const Duration(milliseconds: 500), () {
           setState(() {
             _isCardFlipped[firstIndex] = false;
@@ -150,8 +139,7 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
-  // Xây dựng giao diện cho một ô
-  Widget _buildQuizCard(BuildContext context, int index) {
+  Widget _buildQuizCard(int index) {
     return GestureDetector(
       onTap: () => _handleCardTap(index),
       child: Card(
@@ -171,24 +159,19 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                       child: Center(
                         child: _quizItems[index]['type'] == 'word'
-                            ? Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: FittedBox(
-                                  child: Text(
-                                    _quizItems[index]['value'],
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
+                            ? FittedBox(
+                                child: Text(
+                                  _quizItems[index]['value'],
+                                  style: const TextStyle(
+                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
                                 ),
                               )
-                            : Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Image.network(
-                                  _quizItems[index]['value'],
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Center(child: Icon(Icons.image_not_supported)),
-                                ),
+                            : Image.network(
+                                _quizItems[index]['value'],
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.image_not_supported),
                               ),
                       ),
                     )
@@ -198,11 +181,17 @@ class _QuizScreenState extends State<QuizScreen> {
                         color: Colors.blue[200],
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Center(child: Icon(Icons.question_mark, color: Colors.white, size: 30)),
+                      child: const Center(
+                          child: Icon(Icons.question_mark,
+                              color: Colors.white, size: 30)),
                     ),
         ),
       ),
     );
+  }
+
+  void _resetQuiz() {
+    _loadQuizVocabulary(widget.lessonId);
   }
 
   @override
@@ -217,76 +206,96 @@ class _QuizScreenState extends State<QuizScreen> {
           child: Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
                     const SizedBox(height: 55),
                     const HeaderLesson(
-                      title: 'Quiz',
+                      title: 'Mini game',
                       color: Color(0xFFE0A96D),
                     ),
                     const SizedBox(height: 20),
                     if (_isLoadingData)
                       const Center(child: CircularProgressIndicator())
                     else if (_loadingErrorMessage.isNotEmpty)
-                      Center(child: Text(_loadingErrorMessage, style: const TextStyle(color: Colors.red)))
+                      Center(
+                        child: Text(
+                          _loadingErrorMessage,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      )
                     else
                       Expanded(
                         child: GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 4,
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
                           ),
                           itemCount: _quizItems.length,
-                          itemBuilder: (context, index) => _buildQuizCard(context, index),
+                          itemBuilder: (context, index) => _buildQuizCard(index),
                         ),
                       ),
                     const SizedBox(height: 15),
-                    ElevatedButton(
-                      onPressed: _isLoadingData ? null : _resetQuiz,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF89B3D4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                      child: const Text(
-                        'Chơi lại',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
+                    // Nút chơi lại gọn hơn
+                    if (!_isQuizOver)
+  Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: SizedBox(
+      width: double.infinity, // chiếm toàn chiều ngang
+      child: ElevatedButton(
+        onPressed: _isLoadingData ? null : _resetQuiz,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF89B3D4), // màu xanh nổi bật
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), // bo tròn
+          ),
+          elevation: 5,
+        ),
+        child: const Text(
+          'Chơi lại',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    ),
+  ),
+
                   ],
                 ),
               ),
-
               Positioned(
                 top: 30,
                 left: 10,
                 child: IconButton(
                   onPressed: () {
-                    if (widget.onCompleted != null) {
-                      widget.onCompleted!('quiz', _isQuizOver);
-                    }
+                    widget.onCompleted?.call('quiz', _isQuizOver);
                     Navigator.pop(context);
                   },
                   icon: const Icon(Icons.chevron_left, size: 28),
                 ),
               ),
-
-              // Hiện dialog khi hoàn thành
+              // Dialog hiển thị khi hoàn thành
               if (_showCompletionDialog)
-                CompletionDialog(
-                  title: 'Bạn đã hoàn thành phần Quiz! 🎉',
-                  message: 'Hãy quay lại bài học để tiếp tục nhé.',
-                  onConfirmed: () {
+                FinalScoreDialog(
+                  wrongIndexes: [],        // bỏ nút làm lại
+                  onRetryWrong: () {},     // không dùng
+                  onComplete: () {
                     widget.onCompleted?.call('quiz', true);
                     setState(() {
                       _showCompletionDialog = false;
                     });
                     Navigator.pop(context);
                   },
-                ),
+                  title: "Trò chơi đã hoàn thành!",  // tiêu đề tùy chỉnh
+                  message: null,                       // không hiển thị message, chỉ title
+              ),
+
             ],
           ),
         ),

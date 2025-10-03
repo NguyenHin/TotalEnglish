@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/screens/forgot_password.dart';
@@ -428,4 +427,5 @@ class BottomWavePainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldeDelegate) => false;
 }
+
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:total_english/screens/listening_screen.dart';
+import 'package:total_english/screens/exercise_screen.dart';
 import 'package:total_english/screens/quiz_screen.dart';
 import 'package:total_english/screens/speaking_screen.dart';
 import 'package:total_english/screens/vocabulary_screen.dart'; // Import màn hình Từ vựng
@@ -36,12 +36,13 @@ class LessonMenu extends StatelessWidget {
             },
           ),
         ),
+        
         _buildMenuButton(
           context,
-          "Luyện nghe",
-          Icons.headphones,
-          Color(0xFFBFA8E7),
-          ListeningScreen(
+          "Luyện nói",
+          Icons.mic,
+          Color(0xFF95E499),
+          SpeakingScreen(
             lessonId: lessonId,
             onCompleted: (activity, isCompleted) {
               print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
@@ -49,23 +50,25 @@ class LessonMenu extends StatelessWidget {
                 onActivityCompleted!(activity, isCompleted);
               }
             },
-          ), // Chuyển đến màn hình ListeningScreen
+          ), // Chuyển đến màn hình SpeakingScreen
         ),
+
         _buildMenuButton(
           context,
-          "Luyện nói",
-          Icons.mic,
-          Color(0xFF95E499),
-          SpeakingScreen(
-    lessonId: lessonId,
-    onCompleted: (activity, isCompleted) {
-      print("onActivityCompleted gọi cho $activity: $isCompleted"); // Log khi callback được gọi
-      if (onActivityCompleted != null) {
-        onActivityCompleted!(activity, isCompleted);
-      }
-    },
-  ), // Chuyển đến màn hình SpeakingScreen
+          "Bài tập", // Tiêu đề nút mới
+          Icons.fitness_center, // Icon bạn muốn
+          Color(0xFFFFA500), // Màu nền cho nút
+          ExerciseScreen(
+            lessonId: lessonId,
+            onCompleted: (activity, isCompleted) {
+              print("onActivityCompleted gọi cho $activity: $isCompleted");
+              if (onActivityCompleted != null) {
+                onActivityCompleted!(activity, isCompleted);
+              }
+            },
+          ),
         ),
+
         _buildMenuButton(
           context,
           "Mini Game",
