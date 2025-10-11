@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
 import 'package:total_english/widgets/animated_overlay_dialog.dart';
+import 'package:total_english/widgets/exit_dialog.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:total_english/widgets/play_button.dart';
 import 'package:total_english/widgets/final_score_dialog.dart';
@@ -9,13 +11,7 @@ import '../models/vocabulary_item.dart';
 
 class VocabularyScreen extends StatefulWidget {
   final String lessonId;
-  final void Function(String activity, bool isCompleted)? onCompleted;
-
-  const VocabularyScreen({
-    super.key,
-    required this.lessonId,
-    this.onCompleted,
-  });
+  const VocabularyScreen({super.key, required this.lessonId});
 
   @override
   State<VocabularyScreen> createState() => _VocabularyScreenState();
@@ -30,8 +26,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   final TextToSpeechService _ttsService = TextToSpeechService();
   final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier(false);
-
-  bool _vocabularyCompleted = false;
   OverlayEntry? _checkDialogEntry;
 
   String? _selectedAnswer;
@@ -80,21 +74,17 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       }
 
       _vocabularyItems = [];
-
-      // --- Chỉ Multiple Choice ---
       for (var doc in docs) {
         final data = doc.data() as Map<String, dynamic>;
         final correctAnswer = data['meaning'] ?? '';
 
         final allMeanings = docs
-          .map((d) => (d.data() as Map<String, dynamic>)['meaning']?.toString() ?? '')
-          .where((m) => m.isNotEmpty && m != correctAnswer)
-          .toList()
-        ..shuffle();
+            .map((d) => (d.data() as Map<String, dynamic>)['meaning']?.toString() ?? '')
+            .where((m) => m.isNotEmpty && m != correctAnswer)
+            .toList()
+          ..shuffle();
 
         final wrongAnswers = allMeanings.take(2).toList();
-
-        // ✅ shuffle đáp án
         final options = <String>[correctAnswer, ...wrongAnswers]..shuffle();
 
         _vocabularyItems.add(
@@ -107,16 +97,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       }
 
       _vocabularyItems.shuffle();
-
       _hasAutoPlayed = List.filled(_vocabularyItems.length, false);
       _answerStatus = List.filled(_vocabularyItems.length, null);
 
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
 
       if (_vocabularyItems.isNotEmpty) _autoPlayWord(0);
-
       print("Đã tải ${_vocabularyItems.length} từ vựng (chỉ MultipleChoice)");
     } catch (e) {
       setState(() {
@@ -147,22 +133,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     }
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return Positioned(
-      left: 10,
-      top: 20,
-      child: IconButton(
-        onPressed: () {
-          _safePop(
-            _vocabularyCompleted
-                ? {'completedActivity': 'vocabulary', 'isCompleted': true}
-                : null,
-          );
-        },
-        icon: const Icon(Icons.chevron_left, size: 28),
+  Future<bool> _showExitDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ExitDialog(
+        onCancel: () => Navigator.pop(context, false),
+        onConfirm: () => Navigator.pop(context, true),
       ),
     );
+    return result ?? false;
   }
+
 
   void _showCheckDialog(String correctAnswer, bool isCorrect) {
     final overlay = Overlay.of(context);
@@ -174,7 +156,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         onContinue: () async {
           _checkDialogEntry?.remove();
           _checkDialogEntry = null;
-
           _answerStatus[_currentIndex] = isCorrect;
 
           if (_currentIndex < _vocabularyItems.length - 1) {
@@ -219,13 +200,19 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           Navigator.pop(context);
           _restartWrongQuestions(wrongIndexes);
         },
-        onComplete: () {
-          Navigator.pop(context);
-          _vocabularyCompleted = true;
-          widget.onCompleted?.call('vocabulary', true);
+        onComplete: () async {
+          Navigator.pop(context); // đóng dialog
+          await updateStreak();
+
+          // ✅ Tính phần trăm
+          final percent = (correct / total) * 100;
+
+          // ✅ Trả kết quả chi tiết về LessonMenu
           _safePop({
             'completedActivity': 'vocabulary',
-            'isCompleted': true,
+            'correctCount': correct,
+            'totalCount': total,
+            'progress': percent,
           });
         },
       ),
@@ -246,7 +233,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     });
   }
 
-  // ========================== BUILD MULTIPLE CHOICE ==========================
   Widget _buildMultipleChoice(VocabularyItem item, double maxWidth, double maxHeight) {
     final data = item.doc.data() as Map<String, dynamic>;
     final correctAnswer = data['meaning'] ?? '';
@@ -289,16 +275,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 elevation: 2,
               ),
               onPressed: !_checked
-                  ? () {
-                      setState(() {
-                        _selectedAnswer = option;
-                      });
-                    }
+                  ? () => setState(() => _selectedAnswer = option)
                   : null,
-              child: Text(
-                option,
-                style: TextStyle(fontSize: maxWidth * 0.04),
-              ),
+              child: Text(option, style: TextStyle(fontSize: maxWidth * 0.04)),
             ),
           );
         }),
@@ -322,7 +301,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                       _isAnswerCorrect = _selectedAnswer?.trim().toLowerCase() ==
                           correctAnswer.trim().toLowerCase();
                     });
-                    _showCheckDialog(correctAnswer, _isAnswerCorrect!);
+                    _showCheckDialog(correctAnswer, _isAnswerCorrect);
                   }
                 : null,
             child: Text("Kiểm tra", style: TextStyle(fontSize: maxWidth * 0.045)),
@@ -336,163 +315,172 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (!_vocabularyCompleted && _currentIndex == _vocabularyItems.length - 1) {
-          _vocabularyCompleted = true;
-          widget.onCompleted?.call('vocabulary', true);
-          _safePop({'completedActivity': 'vocabulary', 'isCompleted': true});
-          return false;
+        final shouldExit = await _showExitDialog(context);
+        if (shouldExit) {
+            // Nếu người dùng bấm back giữa chừng → không trả kết quả
+            _checkDialogEntry?.remove();
+            _checkDialogEntry = null;
+            Navigator.pop(context);
         }
-        _checkDialogEntry?.remove();
-        _checkDialogEntry = null;
-        return true;
+        return false;
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         body: SafeArea(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 45),
-                      const HeaderLesson(
-                        title: 'Vocabulary',
-                        color: Color(0xFF89B3D4),
-                      ),
-                      Expanded(
-                        child: _isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : _errorMessage != null
-                                ? Center(child: Text(_errorMessage!))
-                                : _vocabularyItems.isEmpty
-                                    ? const Center(child: Text('Không có từ vựng'))
-                                    : LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final maxWidth = constraints.maxWidth;
-                                          final maxHeight = constraints.maxHeight;
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 45),
+                    const HeaderLesson(
+                      title: 'Vocabulary',
+                      color: Color(0xFF89B3D4),
+                    ),
+                    Expanded(
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _errorMessage != null
+                              ? Center(child: Text(_errorMessage!))
+                              : _vocabularyItems.isEmpty
+                                  ? const Center(child: Text('Không có từ vựng'))
+                                  : LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final maxWidth = constraints.maxWidth;
+                                        final maxHeight = constraints.maxHeight;
 
-                                          return Column(
-                                            children: [
-                                              Expanded(
-                                                child: PageView.builder(
-                                                  controller: _pageController,
-                                                  physics: const NeverScrollableScrollPhysics(),
-                                                  onPageChanged: (index) {
-                                                    setState(() {
-                                                      _currentIndex = index;
-                                                      _selectedAnswer = null;
-                                                      _checked = false;
-                                                    });
-                                                    _autoPlayWord(index);
-                                                  },
-                                                  itemCount: _vocabularyItems.length,
-                                                  itemBuilder: (context, index) {
-                                                    final item = _vocabularyItems[index];
-                                                    final data = item.doc.data() as Map<String, dynamic>?;
+                                        return Column(
+                                          children: [
+                                            Expanded(
+                                              child: PageView.builder(
+                                                controller: _pageController,
+                                                physics: const NeverScrollableScrollPhysics(),
+                                                onPageChanged: (index) {
+                                                  setState(() {
+                                                    _currentIndex = index;
+                                                    _selectedAnswer = null;
+                                                    _checked = false;
+                                                  });
+                                                  _autoPlayWord(index);
+                                                },
+                                                itemCount: _vocabularyItems.length,
+                                                itemBuilder: (context, index) {
+                                                  final item = _vocabularyItems[index];
+                                                  final data = item.doc.data() as Map<String, dynamic>?;
 
-                                                    return Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        Container(
-                                                          width: double.infinity,
-                                                          padding: EdgeInsets.all(maxWidth * 0.04),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.white,
-                                                            borderRadius: BorderRadius.circular(16),
-                                                            boxShadow: const [
-                                                              BoxShadow(
-                                                                color: Colors.black26,
-                                                                blurRadius: 8,
-                                                                offset: Offset(0, 4),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          child: Column(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              ClipRRect(
-                                                                borderRadius: BorderRadius.circular(12),
-                                                                child: Image.network(
-                                                                  data?['imageURL'] ?? '',
+                                                  return Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Container(
+                                                        width: double.infinity,
+                                                        padding: EdgeInsets.all(maxWidth * 0.04),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius: BorderRadius.circular(16),
+                                                          boxShadow: const [
+                                                            BoxShadow(
+                                                              color: Colors.black26,
+                                                              blurRadius: 8,
+                                                              offset: Offset(0, 4),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Column(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            ClipRRect(
+                                                              borderRadius: BorderRadius.circular(12),
+                                                              child: Image.network(
+                                                                data?['imageURL'] ?? '',
+                                                                width: maxWidth * 0.45,
+                                                                height: maxWidth * 0.45,
+                                                                fit: BoxFit.cover,
+                                                                errorBuilder: (context, error, stackTrace) => Container(
                                                                   width: maxWidth * 0.45,
                                                                   height: maxWidth * 0.45,
-                                                                  fit: BoxFit.cover,
-                                                                  errorBuilder: (context, error, stackTrace) => Container(
-                                                                    width: maxWidth * 0.45,
-                                                                    height: maxWidth * 0.45,
-                                                                    color: Colors.grey[300],
-                                                                    child: Icon(Icons.image_not_supported, size: maxWidth * 0.15),
-                                                                  ),
+                                                                  color: Colors.grey[300],
+                                                                  child: Icon(Icons.image_not_supported, size: maxWidth * 0.15),
                                                                 ),
                                                               ),
-                                                              SizedBox(height: maxHeight * 0.02),
-                                                              Text(
-                                                                data?['word'] ?? '',
-                                                                style: TextStyle(
-                                                                  fontSize: maxWidth * 0.06,
-                                                                  fontWeight: FontWeight.bold,
-                                                                ),
+                                                            ),
+                                                            SizedBox(height: maxHeight * 0.02),
+                                                            Text(
+                                                              data?['word'] ?? '',
+                                                              style: TextStyle(
+                                                                fontSize: maxWidth * 0.06,
+                                                                fontWeight: FontWeight.bold,
                                                               ),
-                                                              Text(
-                                                                data?['phonetic'] ?? '',
-                                                                style: TextStyle(
-                                                                  fontSize: maxWidth * 0.045,
-                                                                  color: Colors.grey,
-                                                                ),
+                                                            ),
+                                                            Text(
+                                                              data?['phonetic'] ?? '',
+                                                              style: TextStyle(
+                                                                fontSize: maxWidth * 0.045,
+                                                                color: Colors.grey,
                                                               ),
-                                                              SizedBox(height: maxHeight * 0.015),
-                                                              PlayButton(
-                                                                onPressed: () async {
-                                                                  if (data != null && data.containsKey('word')) {
-                                                                    await _handleListen(data['word']);
-                                                                  }
-                                                                },
-                                                                isPlayingNotifier: _isPlayingNotifier,
-                                                              ),
-                                                            ],
-                                                          ),
+                                                            ),
+                                                            SizedBox(height: maxHeight * 0.015),
+                                                            PlayButton(
+                                                              onPressed: () async {
+                                                                if (data != null && data.containsKey('word')) {
+                                                                  await _handleListen(data['word']);
+                                                                }
+                                                              },
+                                                              isPlayingNotifier: _isPlayingNotifier,
+                                                            ),
+                                                          ],
                                                         ),
-                                                        SizedBox(height: maxHeight * 0.03),
-                                                        _buildMultipleChoice(item, maxWidth, maxHeight),
-                                                      ],
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: List.generate(_vocabularyItems.length, (index) {
-                                                    return AnimatedContainer(
-                                                      duration: const Duration(milliseconds: 200),
-                                                      margin: const EdgeInsets.symmetric(horizontal: 5),
-                                                      height: 10,
-                                                      width: 10,
-                                                      decoration: BoxDecoration(
-                                                        color: _currentIndex == index ? Colors.blue : Colors.grey,
-                                                        shape: BoxShape.circle,
                                                       ),
-                                                    );
-                                                  }),
-                                                ),
+                                                      SizedBox(height: maxHeight * 0.03),
+                                                      _buildMultipleChoice(item, maxWidth, maxHeight),
+                                                    ],
+                                                  );
+                                                },
                                               ),
-                                              SizedBox(height: maxHeight * 0.01),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                      ),
-                    ],
-                  ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 8),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: List.generate(_vocabularyItems.length, (index) {
+                                                  return AnimatedContainer(
+                                                    duration: const Duration(milliseconds: 200),
+                                                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                                                    height: 10,
+                                                    width: 10,
+                                                    decoration: BoxDecoration(
+                                                      color: _currentIndex == index ? Colors.blue : Colors.grey,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  );
+                                                }),
+                                              ),
+                                            ),
+                                            SizedBox(height: maxHeight * 0.01),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                    ),
+                  ],
                 ),
-                _buildBackButton(context),
-              ],
-            ),
+              ),
+              Positioned(
+                left: 10,
+                top: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_left, size: 28),
+                  onPressed: () async {
+                    final shouldExit = await _showExitDialog(context);
+                    if (shouldExit) {
+                      _checkDialogEntry?.remove();
+                      _checkDialogEntry = null;
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -500,10 +488,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   }
 
   void _safePop([Object? result]) {
-    if (_checkDialogEntry != null) {
-      _checkDialogEntry?.remove();
-      _checkDialogEntry = null;
-    }
+    _checkDialogEntry?.remove();
+    _checkDialogEntry = null;
     Navigator.pop(context, result);
   }
 }
