@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
+import 'package:total_english/widgets/exit_dialog.dart';
+import 'package:total_english/widgets/final_score_dialog.dart';
 import 'package:total_english/widgets/header_lesson.dart';
 import 'package:total_english/widgets/play_button.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -11,9 +13,9 @@ import 'package:total_english/widgets/animated_overlay_dialog.dart';
 
 class SpeakingScreen extends StatefulWidget {
   final String lessonId;
-  final Function(String activity, bool isCompleted)? onCompleted; // Thêm callback onCompleted
+  
 
-  const SpeakingScreen({super.key, required this.lessonId, this.onCompleted});
+  const SpeakingScreen({super.key, required this.lessonId,});
 
   @override
   State<SpeakingScreen> createState() => _SpeakingScreenState();
@@ -34,7 +36,6 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   String _micButtonLabel = 'Nói';
   Timer? _listeningTimer; // Thêm biến Timer
   bool _isLessonCompleted = false; // Theo dõi trạng thái hoàn thành
-  bool _showCompletionDialog = false;
 
   // thêm mới 
   bool _showOverlayDialog = false;
@@ -227,54 +228,26 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
     String hintMessage = '';
 
     if (isCorrect) {
-    if (!_spokenCorrectly.contains(_currentPage)) {
       _spokenCorrectly.add(_currentPage);
-    }
-    hintMessage = 'Đúng! 🎉';
+      hintMessage = 'Đúng! 🎉';
 
-    if (_spokenCorrectly.length == _vocabularyList.length) {
-      if (!_isLessonCompleted) {
+      if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
         setState(() {
           _isLessonCompleted = true;
-          _showCompletionDialog = true;  // bật dialog
         });
-        widget.onCompleted?.call('speaking', true);
+        _showFinalScore();
       }
+    } else if (spokenWord.isNotEmpty) {
+      hintMessage = 'Chưa đúng, thử lại.';
     }
-  } else if (spokenWord.isNotEmpty) {
-    hintMessage = 'Chưa đúng, thử lại.';
-  }
 
-    // Cập nhật UI trong một lần duy nhất
     setState(() {
       _speakingHint = hintMessage;
+      _lastAnswerCorrect = isCorrect;
+      _lastCorrectWord = correctWord;
+      _showOverlayDialog = true;
     });
-
-    // 👇 Chỉ update streak nếu nói đúng
-     if (isCorrect) {
-    _spokenCorrectly.add(_currentPage);
-    hintMessage = 'Đúng! 🎉';
-
-    if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
-      setState(() {
-        _isLessonCompleted = true;
-        _showCompletionDialog = true;
-      });
-      widget.onCompleted?.call('speaking', true);
-    }
-  } else if (spokenWord.isNotEmpty) {
-    hintMessage = 'Chưa đúng, thử lại.';
   }
-
-  setState(() {
-    _speakingHint = hintMessage;
-    _lastAnswerCorrect = isCorrect;
-    _lastCorrectWord = correctWord;
-    _showOverlayDialog = true; // bật overlay
-  });
-}
-
-
 
   Widget _buildSpeakButton() {
     return GestureDetector(
@@ -322,20 +295,15 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-    onWillPop: () async {
-      if (!_isLessonCompleted) {
-        widget.onCompleted?.call('speaking', false);
-        print("Đã gọi onCompleted trong WillPopScope ở speaking.");
-      }
-
-      // Đảm bảo dừng mic và timer
-      if (_isListening) {
-        _speech.stop();
-        _cancelListeningTimer();
-      }
-
-      return true;
-    },
+      onWillPop: () async {
+        final shouldExit = await _showExitDialog(context);
+        if (shouldExit) {
+          _speech.stop();
+          _cancelListeningTimer();
+          return true;
+        }
+        return false;
+      },
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),
         resizeToAvoidBottomInset: true,
@@ -370,17 +338,6 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                       }
                     },
                   ),
-              //   if (_showCompletionDialog)    //Gọi dialog khi hoàn thành
-              //     // CompletionDialog(
-              //     //   title: 'Bạn đã hoàn thành phần luyện nói! 🎉',
-              //     //   message: 'Hãy quay lại bài học để tiếp tục nhé.',
-              //     //   onConfirmed: () {
-              //     //     setState(() {
-              //     //       _showCompletionDialog = false;
-              //     //     });
-              //     //     Navigator.pop(context);
-              //     //   },
-                  // ),
               ],
             ),
           ),
@@ -537,21 +494,87 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       left: 10,
       top: MediaQuery.of(context).padding.top + 10, // 👈 auto căn theo notch
       child: IconButton(
-        onPressed: () {
-        if (!_isLessonCompleted) {
-          widget.onCompleted?.call('speaking', false);
-          print("Đã gọi onCompleted từ nút back ở speaking.");
-        }
-        _speech.stop();
-        _cancelListeningTimer();
-        Navigator.pop(context);
-      },
+        onPressed: () async{
+          final shouldExit = await _showExitDialog(context);
+          if (shouldExit) {
+            _speech.stop();
+            _cancelListeningTimer();
+            Navigator.pop(context);
+          }
+        },
         icon: const Icon(Icons.chevron_left, size: 28),
       ),
     );
   }
 
-  
+    Future<bool> _showExitDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ExitDialog(
+        onCancel: () => Navigator.pop(context, false),
+        onConfirm: () => Navigator.pop(context, true),
+      ),
+    );
+    return result ?? false;
+  }
+
+  void _showFinalScore() {
+    final total = _vocabularyList.length;
+    final correct = _spokenCorrectly.length;
+
+    // Lấy danh sách index sai
+    final wrongIndexes = List<int>.generate(total, (i) => i)
+        .where((i) => !_spokenCorrectly.contains(i))
+        .toList();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => FinalScoreDialog(
+        correct: correct,
+        total: total,
+        wrongIndexes: wrongIndexes,
+        onRetryWrong: () {
+          Navigator.pop(context);
+          _restartWrongQuestions(wrongIndexes);
+        },
+        onComplete: () async {
+          Navigator.pop(context);
+          await updateStreak();
+
+          final percent = (correct / total) * 100;
+
+          // Trả kết quả về LessonMenu
+          _safePop({
+            'completedActivity': 'speaking',
+            'correctCount': correct,
+            'totalCount': total,
+            'progress': percent,
+          });
+        },
+      ),
+    );
+  }
+
+  void _restartWrongQuestions(List<int> wrongIndexes) {
+    setState(() {
+      _currentPage = 0;
+      _vocabularyList = wrongIndexes.map((i) => _vocabularyList[i]).toList();
+      _spokenCorrectly.clear();
+      _recognizedText = '';
+      _speakingHint = '';
+      _isLessonCompleted = false;
+    });
+
+    _pageController.jumpToPage(0);
+    _autoPlayWord(0);
+  }
+
+  void _safePop([Object? result]) {
+    Navigator.pop(context, result);
+  }
+
 
   @override
   void dispose() {

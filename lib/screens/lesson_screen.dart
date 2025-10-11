@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:total_english/screens/lesson_overview.dart';
 
-
 class LessonScreen extends StatefulWidget {
   const LessonScreen({super.key});
   @override
@@ -14,7 +13,7 @@ class LessonScreen extends StatefulWidget {
 class _LessonScreenState extends State<LessonScreen> {
   int selectedLesson = -1;
   late Stream<QuerySnapshot> lessonsStream;
-  late Stream<Map<String, Map<String, bool>>> _userProgressStream;
+  late Stream<Map<String, Map<String, double>>> _userProgressStream;
 
   @override
   void initState() {
@@ -26,83 +25,39 @@ class _LessonScreenState extends State<LessonScreen> {
         .snapshots();
   }
 
-  Stream<Map<String, Map<String, bool>>> _loadUserProgressStream() {
+  /// 🔹 Stream load tiến độ người dùng theo phần trăm (%)
+  Stream<Map<String, Map<String, double>>> _loadUserProgressStream() {
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      return Stream.value({});
-    }
+    if (userId == null) return Stream.value({});
+
     return FirebaseFirestore.instance
         .collection('user_lesson_progress')
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final progressMap = <String, Map<String, bool>>{};
+      final progressMap = <String, Map<String, double>>{};
       for (final doc in snapshot.docs) {
-        final data = doc.data();
-        progressMap[data['lessonId'] as String] = {
-          'vocabulary': data['vocabularyCompleted'] as bool? ?? false,
-          'listening': data['listeningCompleted'] as bool? ?? false,
-          'speaking': data['speakingCompleted'] as bool? ?? false,
-          'quiz': data['quizCompleted'] as bool? ?? false,
+        final data = doc.data() as Map<String, dynamic>;
+        progressMap[data['lessonId']] = {
+          'vocabulary': (data['vocabularyProgress'] as num?)?.toDouble() ?? 0,
+          'exercise': (data['exerciseProgress'] as num?)?.toDouble() ?? 0,
+          'speaking': (data['speakingProgress'] as num?)?.toDouble() ?? 0,
+          'quiz': (data['quizProgress'] as num?)?.toDouble() ?? 0,
         };
       }
       return progressMap;
     });
   }
 
-
-Future<void> _updateLessonProgress(String lessonId, String activity, bool completed) async {
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null) return;
-
-  // Tạo docId duy nhất cho mỗi user-lesson
-  final docId = '${userId}_$lessonId';
-  final docRef = FirebaseFirestore.instance.collection('user_lesson_progress').doc(docId);
-
-  await FirebaseFirestore.instance.runTransaction((transaction) async {
-    final snapshot = await transaction.get(docRef);
-
-    if (!snapshot.exists) {
-      // Nếu chưa tồn tại, tạo mới
-      transaction.set(docRef, {
-        'userId': userId,
-        'lessonId': lessonId,
-        'vocabularyCompleted': activity == 'vocabulary' ? completed : false,
-        'listeningCompleted': activity == 'listening' ? completed : false,
-        'speakingCompleted': activity == 'speaking' ? completed : false,
-        'quizCompleted': activity == 'quiz' ? completed : false,
-        'lastUpdatedAt': FieldValue.serverTimestamp(),
-      });
-    } else {
-      // Nếu đã tồn tại, chỉ cập nhật nếu activity chưa completed
-      final data = snapshot.data() as Map<String, dynamic>;
-      final isCurrentlyCompleted = data['${activity}Completed'] as bool? ?? false;
-
-      if (!isCurrentlyCompleted && completed) {
-        transaction.update(docRef, {
-          '${activity}Completed': true,
-          'lastUpdatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    }
-  });
-}
-
-
-  double _calculateLessonProgress(String lessonId, Map<String, Map<String, bool>> progressMap) {
+  /// 🔹 Tính % tổng cho mỗi bài
+  double _calculateLessonProgress(String lessonId, Map<String, Map<String, double>> progressMap) {
     if (progressMap.containsKey(lessonId)) {
-      final status = progressMap[lessonId]!;
-      int completedCount = 0;
-      if (status['vocabulary'] == true) completedCount++;
-      if (status['listening'] == true) completedCount++;
-      if (status['speaking'] == true) completedCount++;
-      if (status['quiz'] == true) completedCount++;
-      return completedCount * 0.25;
+      final data = progressMap[lessonId]!;
+      final avg = (data['vocabulary']! + data['exercise']! + data['speaking']! + data['quiz']!) / 4;
+      return avg.clamp(0, 100);
     }
     return 0.0;
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +71,7 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
           stream: lessonsStream,
-          builder: (context, AsyncSnapshot<QuerySnapshot> lessonSnapshot) {
+          builder: (context, lessonSnapshot) {
             if (lessonSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -127,11 +82,11 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
 
             final lessons = lessonSnapshot.data!.docs;
 
-            return StreamBuilder<Map<String, Map<String, bool>>>(
+            return StreamBuilder<Map<String, Map<String, double>>>(
               stream: _userProgressStream,
-              builder: (context, AsyncSnapshot<Map<String, Map<String, bool>>> progressSnapshot) {
+              builder: (context, progressSnapshot) {
                 final userProgress = progressSnapshot.data ?? {};
-                
+
                 return SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -160,6 +115,7 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                           final bool isSelected = selectedLesson == index;
                           final bool isEven = index % 2 == 0;
 
+                          // 🎨 Gán icon + màu cho từng bài
                           IconData icon;
                           Color color;
                           switch (lesson['order']) {
@@ -208,6 +164,9 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                               color = Colors.grey;
                           }
 
+                          final progressPercent =
+                              _calculateLessonProgress(lesson.id, userProgress);
+
                           return GestureDetector(
                             onTap: () {
                               setState(() {
@@ -239,13 +198,15 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                   ],
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: isEven ? MainAxisAlignment.start : MainAxisAlignment.end,
+                                  mainAxisAlignment:
+                                      isEven ? MainAxisAlignment.start : MainAxisAlignment.end,
                                   children: [
                                     if (!isEven) const Spacer(),
                                     Flexible(
                                       flex: 3,
                                       child: Row(
-                                        mainAxisAlignment: isEven ? MainAxisAlignment.start : MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            isEven ? MainAxisAlignment.start : MainAxisAlignment.end,
                                         children: [
                                           if (isEven)
                                             CircleAvatar(
@@ -255,7 +216,7 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                                 child: FaIcon(
                                                   icon,
                                                   color: Colors.white,
-                                                  size: 28, // Nhỏ hơn một chút để vừa đẹp
+                                                  size: 28,
                                                 ),
                                               ),
                                             ),
@@ -275,7 +236,7 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  'Tiến độ: ${(_calculateLessonProgress(lesson.id, userProgress) * 100).toStringAsFixed(0)}%',
+                                                  'Tiến độ: ${progressPercent.toStringAsFixed(0)}%',
                                                   style: const TextStyle(
                                                     color: Colors.grey,
                                                     fontSize: 14,
@@ -292,38 +253,34 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                                   ),
                                                   const SizedBox(height: 10),
                                                   Align(
-                                                    alignment: isEven ? Alignment.centerRight : Alignment.centerLeft,
+                                                    alignment: isEven
+                                                        ? Alignment.centerRight
+                                                        : Alignment.centerLeft,
                                                     child: ElevatedButton(
                                                       onPressed: () async {
-                                                        final lesson = lessons[index];
-                                                        final result = await Navigator.push(
+                                                        await Navigator.push(
                                                           context,
                                                           MaterialPageRoute(
                                                             builder: (context) => LessonOverview(
                                                               lessonId: lesson.id,
                                                               lessonTitle: lesson['title'],
-                                                              lessonDescription: lesson['description'],
+                                                              lessonDescription:
+                                                                  lesson['description'],
                                                               lessonIcon: icon,
                                                               lessonColor: color,
-                                                              onLessonOverviewPop: (completedActivities) {
-                                                                print("Tiến độ trả về từ LessonOverview (callback): $completedActivities");
-                                                                // Duyệt qua map completedActivities và cập nhật tiến độ cho từng hoạt động
-                                                                completedActivities.forEach((activity, isCompleted) {
-                                                                  _updateLessonProgress(lesson.id, activity, isCompleted);
-                                                                });
-                                                              },
                                                             ),
                                                           ),
                                                         );
-                                                        
                                                       },
                                                       style: ElevatedButton.styleFrom(
                                                         foregroundColor: Colors.white,
                                                         backgroundColor: color,
                                                         shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(30),
+                                                          borderRadius:
+                                                              BorderRadius.circular(30),
                                                         ),
-                                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                                                        padding: const EdgeInsets.symmetric(
+                                                            horizontal: 24, vertical: 10),
                                                       ),
                                                       child: const Text('Bắt đầu'),
                                                     ),
@@ -341,7 +298,7 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
                                                 child: FaIcon(
                                                   icon,
                                                   color: Colors.white,
-                                                  size: 28, // Nhỏ hơn một chút để vừa đẹp
+                                                  size: 28,
                                                 ),
                                               ),
                                             ),
@@ -363,7 +320,7 @@ Future<void> _updateLessonProgress(String lessonId, String activity, bool comple
             );
           },
         ),
-      )
+      ),
     );
   }
 }
