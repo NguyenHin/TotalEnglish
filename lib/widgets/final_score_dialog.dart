@@ -76,7 +76,7 @@ class FinalScoreDialog extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
+                              horizontal: 15, vertical: 6),
                         ),
                         child: const Text("Làm lại câu sai",
                             style:
@@ -90,7 +90,7 @@ class FinalScoreDialog extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16)),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
+                            horizontal: 15, vertical: 6),
                       ),
                       child: const Text("Hoàn tất",
                           style:

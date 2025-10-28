@@ -341,7 +341,7 @@ class _LoginScreenState extends State<LoginScreen>{
  
   Widget _buildLogo() {
   return Positioned(
-    top: 191,
+    top: 185,
     left: 0, // Không cần phải xác định left nữa
     right: 0, // Đặt right = 0 để căn giữa
     child: Column(
@@ -352,8 +352,8 @@ class _LoginScreenState extends State<LoginScreen>{
           borderRadius: BorderRadius.circular(12),
           child: Image.asset(
             'assets/icon/app_icon.png',
-            width: 161,
-            height: 161,
+            width: 150,
+            height: 150,
             fit: BoxFit.cover,
           ),
         ),
