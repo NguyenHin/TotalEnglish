@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 void main() {
   runApp(const MyApp());
@@ -54,17 +59,67 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final AudioRecorder _recorder = AudioRecorder();
+  bool _isRecording = false;
+  String? _lastTranscript;
+  String? _lastFilePath;
 
-  void _incrementCounter() {
+  Future<void> _toggleRecord() async {
+    if (_isRecording) {
+      final path = await _recorder.stop();
+      setState(() {
+        _isRecording = false;
+        _lastFilePath = path;
+      });
+      if (path != null) {
+        await _uploadToServer(File(path));
+      }
+      return;
+    }
+
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) return;
+
+    final dir = await getTemporaryDirectory();
+    final filePath = '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+
+    await _recorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.wav,
+        sampleRate: 16000,
+        numChannels: 1,
+      ),
+      path: filePath,
+    );
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _isRecording = true;
     });
+  }
+
+  Future<void> _uploadToServer(File file) async {
+    final uri = Uri.parse(Platform.isAndroid
+        ? 'http://10.0.2.2:8080/stt/upload'
+        : 'http://localhost:8080/stt/upload');
+    final req = http.MultipartRequest('POST', uri);
+    req.files.add(await http.MultipartFile.fromPath('audio', file.path, contentType: MediaType('audio', 'wav')));
+    try {
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+      if (resp.statusCode == 200) {
+        final text = RegExp('"text"\s*:\s*"(.*?)"').firstMatch(resp.body)?.group(1);
+        setState(() {
+          _lastTranscript = text ?? 'Got response';
+        });
+      } else {
+        setState(() {
+          _lastTranscript = 'Error ${resp.statusCode}: ${resp.body}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _lastTranscript = 'Upload failed: $e';
+      });
+    }
   }
 
   @override
@@ -104,19 +159,19 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Text(_isRecording ? 'Recording...' : 'Press mic to record'),
+            const SizedBox(height: 16),
+            if (_lastFilePath != null) Text('Saved: $_lastFilePath'),
+            const SizedBox(height: 16),
+            if (_lastTranscript != null) Text('Transcript: $_lastTranscript'),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    floatingActionButton: FloatingActionButton(
+      onPressed: _toggleRecord,
+      tooltip: 'Record',
+      child: Icon(_isRecording ? Icons.stop : Icons.mic),
+    ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
