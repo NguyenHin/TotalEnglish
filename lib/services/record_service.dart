@@ -3,22 +3,20 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RecordService {
   final Record _record = Record();
-
   bool isRecording = false;
   bool isUploading = false;
 
-  /// Lấy đường dẫn file ghi âm mới
+  /// 🗂️ Tạo đường dẫn file .wav mới
   Future<String> _getNewFilePath() async {
     final dir = await getApplicationDocumentsDirectory();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     return '${dir.path}/record_$timestamp.wav';
   }
 
-  /// Bắt đầu ghi âm
+  /// 🎙️ Bắt đầu ghi âm
   Future<String?> startRecording() async {
     if (isRecording || isUploading) return null;
 
@@ -28,7 +26,7 @@ class RecordService {
         path: path,
         encoder: AudioEncoder.wav,
         bitRate: 128000,
-        samplingRate: 16000, // Vosk yêu cầu 16kHz
+        samplingRate: 16000, // ✅ Vosk yêu cầu 16kHz
       );
       isRecording = true;
       return path;
@@ -36,21 +34,21 @@ class RecordService {
     return null;
   }
 
-  /// Dừng ghi âm và gửi file lên server
-  Future<String?> stopRecordingAndSend({
+  /// ⏹️ Dừng ghi âm và gửi file lên server Vosk
+  Future<Map<String, dynamic>> stopRecordingAndSend({
     required String filePath,
     required String serverUrl,
-    String? lessonId,
-    int? wordIndex,
-    bool saveToFirebase = false,
+    String? expectedWord, // ✅ từ đúng để so sánh accuracy
   }) async {
-    if (!isRecording) return null;
+    if (!isRecording) return {'text': '', 'accuracy': 0.0, 'isCorrect': false};
 
     await _record.stop();
     isRecording = false;
     isUploading = true;
 
     String recognizedText = '';
+    double accuracy = 0.0;
+    bool isCorrect = false;
     final audioFile = File(filePath);
 
     try {
@@ -63,27 +61,64 @@ class RecordService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        recognizedText = data['text'] ?? '';
-      } else {
-        recognizedText = '';
-      }
+        recognizedText = (data['text'] ?? '').trim();
 
-      // Lưu lên Firebase nếu cần
-      if (saveToFirebase && lessonId != null && wordIndex != null) {
-        FirebaseFirestore.instance.collection('speech_history').add({
-          'text': recognizedText,
-          'lessonId': lessonId,
-          'wordIndex': wordIndex,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+        if (expectedWord != null && expectedWord.isNotEmpty) {
+          accuracy = _calculateAccuracy(recognizedText, expectedWord);
+          isCorrect = accuracy >= 90.0;
+        }
       }
     } catch (e) {
-      print("RecordService error: $e");
+      print("❌ RecordService error: $e");
     } finally {
       if (await audioFile.exists()) await audioFile.delete();
       isUploading = false;
     }
 
-    return recognizedText;
+    return {
+      'text': recognizedText,
+      'accuracy': accuracy,
+      'isCorrect': isCorrect,
+    };
   }
+
+  /// 📊 Hàm tính độ chính xác giữa 2 chuỗi (Levenshtein ratio)
+  double _calculateAccuracy(String spoken, String expected) {
+    if (spoken.isEmpty || expected.isEmpty) return 0.0;
+    spoken = spoken.toLowerCase().trim();
+    expected = expected.toLowerCase().trim();
+
+    final distance = _levenshtein(spoken, expected);
+    final maxLen = expected.length;
+    final accuracy = ((maxLen - distance) / maxLen) * 100;
+    return accuracy.clamp(0.0, 100.0);
+  }
+
+  int _levenshtein(String a, String b) {
+    final m = a.length;
+    final n = b.length;
+    List<List<int>> dp = List.generate(m + 1, (_) => List.filled(n + 1, 0));
+
+    for (int i = 0; i <= m; i++) {
+      dp[i][0] = i;
+    }
+
+    for (int j = 0; j <= n; j++) {
+      dp[0][j] = j;
+    }
+
+    for (int i = 1; i <= m; i++) {
+      for (int j = 1; j <= n; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        dp[i][j] = [
+          dp[i - 1][j] + 1, // xóa
+          dp[i][j - 1] + 1, // thêm
+          dp[i - 1][j - 1] + cost, // thay
+        ].reduce((a, b) => a < b ? a : b);
+      }
+    }
+
+    return dp[m][n];
+  }
+
 }
