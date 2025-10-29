@@ -149,3 +149,13 @@ void _setupFirebaseMessagingListener() {
     }
   });
 }
+
+// import 'package:flutter/material.dart';
+// import 'record_test.dart';
+
+// void main() {
+//   runApp(const MaterialApp(
+//     debugShowCheckedModeBanner: false,
+//     home: RecordTestScreen(), // 👈 chạy màn hình test ghi âm
+//   ));
+// }
