@@ -38,7 +38,7 @@ class RecordService {
   Future<Map<String, dynamic>> stopRecordingAndSend({
     required String filePath,
     required String serverUrl,
-    String? expectedWord, // ✅ từ đúng để so sánh accuracy
+    String? expectedWord, // từ đúng để so sánh accuracy
   }) async {
     if (!isRecording) return {'text': '', 'accuracy': 0.0, 'isCorrect': false};
 
@@ -95,7 +95,7 @@ class RecordService {
   }
 
   int _levenshtein(String a, String b) {
-    final m = a.length;
+    final m = a.length; 
     final n = b.length;
     List<List<int>> dp = List.generate(m + 1, (_) => List.filled(n + 1, 0));
 

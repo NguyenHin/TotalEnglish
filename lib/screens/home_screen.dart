@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:total_english/services/notification_services.dart';
+import 'package:total_english/services/streak_services.dart';
 import 'lesson_screen.dart';
 import 'streak_screen.dart';
 import 'notification_screen.dart';
@@ -28,6 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    checkAndResetStreakIfMissedDay().then((_) {
+            print('✅ Đã kiểm tra và reset streak nếu cần');
+          });
     Future.delayed(const Duration(seconds: 2), () async {
       await checkAndSendStreakWarning(); // Gọi trực tiếp
       await checkAndSendStudyReminder();

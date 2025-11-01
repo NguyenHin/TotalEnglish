@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:total_english/models/vocabulary_item.dart';
 import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
 import 'package:total_english/widgets/exit_dialog.dart';
@@ -42,8 +43,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   late List<bool> _hasAutoPlayed;
 
   Map<String, List<String>> _shuffledLetters = {};
-  List<Offset> _letterPositions = [];
-  List<bool> _letterUsed = [];
 
   @override
   void initState() {
@@ -61,59 +60,88 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   Future<void> _loadExercises() async {
     setState(() => _isLoading = true);
-
     try {
+      // Lấy danh sách vocabulary trong bài học
       final vocabSnap = await FirebaseFirestore.instance
           .collection('lessons')
           .doc(widget.lessonId)
           .collection('vocabulary')
           .get();
 
-      List<ExerciseItem> exercises = [];
-      List<ExerciseItem> allVocabItems = [];
+      // Chuyển thành list VocabularyItem
+      final allVocabItems =
+          vocabSnap.docs.map((doc) => VocabularyItem(doc: doc)).toList();
 
-      for (var vocabDoc in vocabSnap.docs) {
-        final vocabItem = ExerciseItem.fromDoc(vocabDoc);
-        allVocabItems.add(vocabItem);
+      List<ExerciseItem> exercises = [];
+
+      // 🔹 Dùng Future.wait để load tất cả activities song song
+      final allActivities = await Future.wait(
+        allVocabItems.map((vocabItem) async {
+          final activitiesSnap =
+              await vocabItem.doc.reference.collection('activities').get();
+
+          // Tạo list ExerciseItem từ mỗi activityDoc
+          return activitiesSnap.docs.map((activityDoc) {
+            return ExerciseItem.fromDoc(activityDoc, vocabItem);
+          }).toList();
+        }),
+      );
+
+      // Gộp tất cả lại thành một list duy nhất
+      for (var exerciseList in allActivities) {
+        exercises.addAll(exerciseList);
       }
 
-      for (var vocabItem in allVocabItems) {
-        final activitiesSnap =
-            await vocabItem.doc.reference.collection('activities').get();
+      // 🔹 Xử lý multiple choice: thêm 3 đáp án sai ngẫu nhiên
+      for (var i = 0; i < exercises.length; i++) {
+        final ex = exercises[i];
+        if (ex.type == ExerciseType.multipleChoice) {
+          final correctVocab = ex.vocab;
 
-        for (var activityDoc in activitiesSnap.docs) {
-          final exercise = ExerciseItem.fromDoc(activityDoc);
+          // Lấy 3 vocab khác làm đáp án sai
+          final wrongVocabItems = allVocabItems
+              .where((v) => v.word != correctVocab.word)
+              .toList()
+            ..shuffle();
 
-          if (exercise.type == ExerciseType.multipleChoice) {
-            List<ExerciseItem> otherOptions = allVocabItems
-                .where((e) => e.word != exercise.word)
-                .toList()
-              ..shuffle();
+          // Tạo danh sách 4 lựa chọn (1 đúng + 3 sai)
+          final options = [
+            ex,
+            ...wrongVocabItems.take(3).map(
+                  (v) => ExerciseItem(
+                    doc: ex.doc,
+                    type: ex.type,
+                    vocab: v,
+                  ),
+                )
+          ]..shuffle();
 
-            exercise.optionsItems = [exercise, ...otherOptions.take(3)]..shuffle();
-          }
-
-          exercises.add(exercise);
+          // Gán options vào ExerciseItem gốc
+          exercises[i] = ex.copyWith(optionsItems: options);
         }
       }
 
+      // Thứ tự ngẫu nhiên
       exercises.shuffle();
 
+      // ✅ Khởi tạo trạng thái để tránh RangeError
       setState(() {
         _exercises = exercises;
         _isLoading = false;
-        _answerStatus = List.filled(_exercises.length, null);
-        _hasAutoPlayed = List.filled(_exercises.length, false);
+        _answerStatus = List<bool?>.filled(_exercises.length, null);
+        _hasAutoPlayed = List<bool>.filled(_exercises.length, false);
       });
 
+      // ✅ Tự động phát âm từ đầu tiên nếu có
       if (_exercises.isNotEmpty) {
         _autoPlayWord(0);
       }
-    } catch (e) {
-      print("Lỗi load exercises: $e");
+    } catch (e, st) {
+      debugPrint("❌ Error loading exercises: $e\n$st");
       setState(() => _isLoading = false);
     }
   }
+
 
   Future<void> _autoPlayWord(int index) async {
     if (!_hasAutoPlayed[index]) {
@@ -123,23 +151,24 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       if (currentExercise.type == ExerciseType.letterTiles) {
         textToSpeak = currentExercise.example;
       } else {
-        final wordData = currentExercise.doc.data() as Map<String, dynamic>?;
-        textToSpeak = wordData?['word'];
+        textToSpeak = currentExercise.word;
       }
 
       if (textToSpeak != null && textToSpeak.isNotEmpty) {
         await Future.delayed(const Duration(milliseconds: 700));
-        _isPlayingNotifier.value = true;
-        await _ttsService.speak(textToSpeak);
-        await Future.delayed(const Duration(milliseconds: 500));
-        _isPlayingNotifier.value = false;
-        _hasAutoPlayed[index] = true;
+      _isPlayingNotifier.value = true;
+      await _ttsService.stop(); // dừng TTS cũ trước khi đọc
+      await _ttsService.speak(textToSpeak);
+      await Future.delayed(const Duration(milliseconds: 500));
+      _isPlayingNotifier.value = false;
+      _hasAutoPlayed[index] = true;
       }
     }
   }
 
   Future<void> _handleListen(String text) async {
     _isPlayingNotifier.value = true;
+    await _ttsService.stop(); // dừng âm cũ
     await _ttsService.speak(text);
     _isPlayingNotifier.value = false;
   }
@@ -163,7 +192,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       builder: (context) => AnimatedOverlayDialog(
         correctAnswer: correctAnswer,
         isCorrect: isCorrect,
-        onContinue: () {
+        onContinue: () async {
           _checkDialogEntry?.remove();
           _checkDialogEntry = null;
 
@@ -181,6 +210,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               curve: Curves.easeInOut,
             );
           } else {
+             await updateStreak();
             _showFinalScore();
           }
         },
@@ -218,10 +248,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           // 2) Tính progress percent
           final percent = total > 0 ? ((correct / total) * 100) : 0.0;
 
-          // 3) Cập nhật streak
-          await updateStreak();
+          // await updateStreak();
 
-          // 4) Pop màn hình Exercise và trả kết quả về LessonMenu
+          // 3) Pop màn hình Exercise và trả kết quả về LessonMenu
           _safePop({
             'completedActivity': 'exercise',
             'correctCount': correct,
@@ -254,7 +283,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     });
   }
 
-  // ========== UI builders (giữ nguyên) ==========
+  // ========== UI  ==========
 
   Widget _buildFillInBlank(ExerciseItem item) {
     final controller = TextEditingController();
@@ -619,8 +648,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               },
               child: Container(
                 key: ValueKey<String>('$letter-$index'),
-                width: 45,
-                height: 50,
+                width: 30,
+                height: 35,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: hasLetter ? Colors.white : Colors.blueGrey.withOpacity(0.1),
@@ -643,7 +672,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 child: Text(
                   letter.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.blueAccent,
                   ),
@@ -680,8 +709,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
               opacity: isSelected ? 0.3 : 1.0,
               duration: const Duration(milliseconds: 300),
               child: Container(
-                width: 45,
-                height: 45,
+                width: 35,
+                height: 35,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -699,7 +728,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 child: Text(
                   letter.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),

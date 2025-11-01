@@ -50,6 +50,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     super.dispose();
   }
 
+  /// 🔹 Chỉ sửa phần này cho đúng với VocabularyItem mới
   Future<void> _loadVocabulary() async {
     setState(() {
       _isLoading = true;
@@ -87,13 +88,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         final wrongAnswers = allMeanings.take(2).toList();
         final options = <String>[correctAnswer, ...wrongAnswers]..shuffle();
 
-        _vocabularyItems.add(
-          VocabularyItem(
-            doc: doc,
-            activityType: ActivityType.multipleChoice,
-            options: options,
-          ),
-        );
+        // ✅ Sử dụng VocabularyItem mới
+        _vocabularyItems.add(VocabularyItem(
+          doc: doc,
+          options: options,
+        ));
       }
 
       _vocabularyItems.shuffle();
@@ -103,13 +102,13 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       setState(() => _isLoading = false);
 
       if (_vocabularyItems.isNotEmpty) _autoPlayWord(0);
-      print("Đã tải ${_vocabularyItems.length} từ vựng (chỉ MultipleChoice)");
+      print("✅ Đã tải ${_vocabularyItems.length} từ vựng (chỉ MultipleChoice)");
     } catch (e) {
       setState(() {
         _isLoading = false;
         _errorMessage = "Không thể tải từ vựng. Lỗi: $e";
       });
-      print("Lỗi tải từ vựng: $e");
+      print("❌ Lỗi tải từ vựng: $e");
     }
   }
 
@@ -145,7 +144,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     return result ?? false;
   }
 
-
   void _showCheckDialog(String correctAnswer, bool isCorrect) {
     final overlay = Overlay.of(context);
     _checkDialogEntry?.remove();
@@ -173,6 +171,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             await Future.delayed(const Duration(milliseconds: 900));
             await _autoPlayWord(_currentIndex);
           } else {
+            await updateStreak();
             _showFinalScore();
           }
         },
@@ -189,6 +188,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       if (_answerStatus[i] == false) wrongIndexes.add(i);
     }
 
+    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -201,13 +202,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           _restartWrongQuestions(wrongIndexes);
         },
         onComplete: () async {
-          Navigator.pop(context); // đóng dialog
-          await updateStreak();
-
-          // ✅ Tính phần trăm
+          Navigator.pop(context);
           final percent = (correct / total) * 100;
-
-          // ✅ Trả kết quả chi tiết về LessonMenu
           _safePop({
             'completedActivity': 'vocabulary',
             'correctCount': correct,
@@ -227,7 +223,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       _hasAutoPlayed = List.filled(_vocabularyItems.length, false);
       _selectedAnswer = null;
       _checked = false;
-
       _pageController.jumpToPage(0);
       _autoPlayWord(0);
     });
@@ -311,16 +306,21 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
+  void _safePop([Object? result]) {
+    _checkDialogEntry?.remove();
+    _checkDialogEntry = null;
+    Navigator.pop(context, result);
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
         final shouldExit = await _showExitDialog(context);
         if (shouldExit) {
-            // Nếu người dùng bấm back giữa chừng → không trả kết quả
-            _checkDialogEntry?.remove();
-            _checkDialogEntry = null;
-            Navigator.pop(context);
+          _checkDialogEntry?.remove();
+          _checkDialogEntry = null;
+          Navigator.pop(context);
         }
         return false;
       },
@@ -369,6 +369,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                                   final item = _vocabularyItems[index];
                                                   final data = item.doc.data() as Map<String, dynamic>?;
 
+                                                  // ⚡ GIỮ NGUYÊN UI GỐC CỦA BẠN ⚡
                                                   return Column(
                                                     mainAxisAlignment: MainAxisAlignment.center,
                                                     children: [
@@ -396,12 +397,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                                                 width: maxWidth * 0.45,
                                                                 height: maxWidth * 0.45,
                                                                 fit: BoxFit.cover,
-                                                                errorBuilder: (context, error, stackTrace) => Container(
-                                                                  width: maxWidth * 0.45,
-                                                                  height: maxWidth * 0.45,
-                                                                  color: Colors.grey[300],
-                                                                  child: Icon(Icons.image_not_supported, size: maxWidth * 0.15),
-                                                                ),
                                                               ),
                                                             ),
                                                             SizedBox(height: maxHeight * 0.02),
@@ -485,11 +480,5 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         ),
       ),
     );
-  }
-
-  void _safePop([Object? result]) {
-    _checkDialogEntry?.remove();
-    _checkDialogEntry = null;
-    Navigator.pop(context, result);
   }
 }

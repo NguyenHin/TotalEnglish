@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:total_english/services/record_service.dart';
+import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:total_english/widgets/exit_dialog.dart';
@@ -82,49 +83,49 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   // 🎙️ Ghi âm - Dừng ghi âm - Xử lý kết quả
   Future<void> _onMicPressed() async {
-  bool isLocked = _spokenCorrectly.contains(_currentPage);
-  if (isLocked) return;
+    bool isLocked = _spokenCorrectly.contains(_currentPage);
+    if (isLocked) return;
 
-  if (!_recordService.isRecording) {
-    // Bắt đầu ghi âm
-    _currentFilePath = await _recordService.startRecording();
-    if (_currentFilePath != null) _startMicPulse();
-  } else {
-    // Dừng ghi âm
-    _stopMicPulse();
+    if (!_recordService.isRecording) {
+      // Bắt đầu ghi âm
+      _currentFilePath = await _recordService.startRecording();
+      if (_currentFilePath != null) _startMicPulse();
+    } else {
+      // Dừng ghi âm
+      _stopMicPulse();
 
-    final vocabData = _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
-    final correctWord = vocabData['word'] ?? '';
+      final vocabData = _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
+      final correctWord = vocabData['word'] ?? '';
 
-    try {
-      final result = await _recordService.stopRecordingAndSend(
-        filePath: _currentFilePath!,
-        serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe', // ✅ URL server Render
-        expectedWord: correctWord,
-      );
+      try {
+        final result = await _recordService.stopRecordingAndSend(
+          filePath: _currentFilePath!,
+          serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe', // ✅ URL server Render
+          expectedWord: correctWord,
+        );
+        //lấy dữ liệu kq từ server
+        final recognizedText = result['text'] ?? '';
+        final accuracy = result['accuracy'] ?? 0.0;
+        final isCorrect = result['isCorrect'] ?? false;
 
-      final recognizedText = result['text'] ?? '';
-      final accuracy = result['accuracy'] ?? 0.0;
-      final isCorrect = result['isCorrect'] ?? false;
+        await _saveSpeakingHistory(
+          lessonId: widget.lessonId,
+          expectedWord: correctWord,
+          recognizedText: recognizedText,
+          accuracy: accuracy,
+          isCorrect: isCorrect,
+        );
 
-      await _saveSpeakingHistory(
-        lessonId: widget.lessonId,
-        expectedWord: correctWord,
-        recognizedText: recognizedText,
-        accuracy: accuracy,
-        isCorrect: isCorrect,
-      );
-
-      _showResultOverlay(correctWord, recognizedText, accuracy, isCorrect);
-    } catch (e) {
-      // ⚠️ Handle lỗi mạng hoặc server
-      print('🔥 Lỗi khi gửi audio lên server: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể kết nối server. Vui lòng thử lại.')),
-      );
+        _showResultOverlay(correctWord, recognizedText, accuracy, isCorrect);
+      } catch (e) {
+        // ⚠️ Handle lỗi mạng hoặc server
+        print('🔥 Lỗi khi gửi audio lên server: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể kết nối server. Vui lòng thử lại.')),
+        );
+      }
     }
   }
-}
 
 
   Future<void> _saveSpeakingHistory({
@@ -184,7 +185,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
 
-  // 🌈 Hiệu ứng rung mic
+  // Hiệu ứng rung mic
   void _startMicPulse() {
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_recordService.isRecording) {
@@ -201,9 +202,9 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   void _stopMicPulse() => setState(() => _micScale = 1.0);
 
-  // 📊 Hiển thị kết quả (accuracy + highlight)
+  // Hiển thị kết quả (accuracy + highlight)
   void _showResultOverlay(String correctWord, String spokenWord, double accuracy, bool isCorrect) {
-    setState(() {
+    setState(() async {
       _lastAnswerCorrect = isCorrect;
       _lastCorrectWord = correctWord;
       _highlightWidget = _highlightSpelling(correctWord, spokenWord, accuracy);
@@ -212,6 +213,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       if (isCorrect) _spokenCorrectly.add(_currentPage);
       if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
         _isLessonCompleted = true;
+        await updateStreak();
         _showFinalScore();
       }
     });
@@ -243,31 +245,30 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   Widget _buildSpeakButton() {
     bool isLocked = _spokenCorrectly.contains(_currentPage);
-  return GestureDetector(
-    onTap: _onMicPressed,
-    child: AnimatedScale(
-      scale: _micScale,
-      duration: const Duration(milliseconds: 200),
-      child: Container(
-        width: 65,
-        height: 65,
-        decoration: BoxDecoration(
-          color: isLocked
-              ? Colors.grey
-              : (_recordService.isRecording ? Colors.red : const Color(0xFF89B3D4)),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 3))
-          ],
+    return GestureDetector(
+      onTap: _onMicPressed,
+      child: AnimatedScale(
+        scale: _micScale,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          width: 65,
+          height: 65,
+          decoration: BoxDecoration(
+            color: isLocked
+                ? Colors.grey
+                : (_recordService.isRecording ? Colors.red : const Color(0xFF89B3D4)),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 3))
+            ],
+          ),
+          child: const Icon(FontAwesomeIcons.microphone, size: 28, color: Colors.white),
         ),
-        child: const Icon(FontAwesomeIcons.microphone, size: 28, color: Colors.white),
       ),
-    ),
-  );
-       
-}
+    );     
+  }
 
-  // 🧠 Kết thúc bài học
+  // Kết thúc bài học
   void _showFinalScore() {
     final total = _vocabularyList.length;
     final correct = _spokenCorrectly.length;
@@ -284,9 +285,10 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
           Navigator.pop(context);
           _restartWrongQuestions(wrong);
         },
-        onComplete: () {
-          Navigator.pop(context);
-          Navigator.pop(context, {
+        onComplete: () async{
+          Navigator.pop(context); // đóng dialog
+          //await updateStreak();
+          _safePop({
             'completedActivity': 'speaking',
             'correctCount': correct,
             'totalCount': total,
@@ -420,7 +422,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
           ),
         ),
       ),
-      // 🌟 Overlay dialog
+      // Overlay dialog
       if (_showOverlayDialog)
         AnimatedOverlayDialog(
           correctAnswer: _lastCorrectWord,
@@ -469,5 +471,10 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
     _pageController.dispose();
     super.dispose();
   }
+  
+  void _safePop([Object? result]) {
+    Navigator.pop(context, result);
+  }
+
 }
 
