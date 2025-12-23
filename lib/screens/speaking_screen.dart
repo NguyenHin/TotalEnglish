@@ -65,7 +65,11 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
         _isLoading = false;
       });
 
-      if (_vocabularyList.isNotEmpty) _autoPlayWord(0);
+      if (_vocabularyList.isNotEmpty) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _autoPlayWord(0);
+      });
+    }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -75,14 +79,23 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
   Future<void> _autoPlayWord(int index) async {
+    // Kiểm tra nếu đang ghi âm thì không cho phát âm thanh
+  if (_recordService.isRecording || _isMicBusy) return;
     if (index < 0 || index >= _vocabularyList.length) return;
     final data = _vocabularyList[index].data() as Map<String, dynamic>? ?? {};
     final word = data['word'] ?? '';
     if (word.isEmpty) return;
 
     _isPlayingNotifier.value = true;
-    await _ttsService.speak(word);
+    try {
+    // Chờ một chút để icon kịp phóng to lên trước khi âm thanh kết thúc
+    await Future.wait([
+      _ttsService.speak(word),
+      Future.delayed(const Duration(milliseconds: 600)), // Đảm bảo nút phóng to ít nhất 0.6s
+    ]);
+  } finally {
     _isPlayingNotifier.value = false;
+  }
   }
 
   // 🎙️ Ghi âm - Dừng ghi âm - Xử lý kết quả
@@ -146,6 +159,10 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   _isMicBusy = true;
 
   try {
+    // 🛑 Dừng ngay lập tức âm thanh TTS nếu đang phát
+    await _ttsService.stop();
+    _isPlayingNotifier.value = false;
+
     final bool isLocked = _spokenCorrectly.contains(_currentPage);
     if (isLocked) return;
 
@@ -540,9 +557,21 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                PlayButton(
-                                  onPressed: () async => await _autoPlayWord(i),
-                                  isPlayingNotifier: _isPlayingNotifier,
+                                ValueListenableBuilder<double>(
+                                  valueListenable: _micScaleNotifier, 
+                                  builder: (context, scale, _) {
+                                    final bool isRecording = _recordService.isRecording;
+                                    return AbsorbPointer(
+                                      absorbing: isRecording, 
+                                      child: Opacity(
+                                        opacity: isRecording ? 0.5 : 1.0, 
+                                        child: PlayButton(
+                                          onPressed: () async => await _autoPlayWord(i),
+                                          isPlayingNotifier: _isPlayingNotifier,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(width: 30),
                                 _buildSpeakButton(),
