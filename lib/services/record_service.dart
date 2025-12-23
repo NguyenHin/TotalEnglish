@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
@@ -76,7 +77,7 @@ class RecordService {
 
         if (expectedWord != null && expectedWord.isNotEmpty) {
           accuracy = _calculateAccuracy(recognizedText, expectedWord);
-          isCorrect = accuracy >= 90.0;
+          isCorrect = accuracy >= 70.0;
         }
       }
     } catch (e) {
@@ -102,14 +103,17 @@ class RecordService {
   /// 📊 Hàm tính độ chính xác giữa 2 chuỗi (Levenshtein)
   double _calculateAccuracy(String spoken, String expected) {
     if (spoken.isEmpty || expected.isEmpty) return 0.0;
+
     spoken = spoken.toLowerCase().trim();
     expected = expected.toLowerCase().trim();
 
     final distance = _levenshtein(spoken, expected);
-    final maxLen = expected.length;
+    final maxLen = math.max(spoken.length, expected.length);
+
     final accuracy = ((maxLen - distance) / maxLen) * 100;
-    return accuracy.clamp(0.0, 100.0); //giới hạn kết quả 0->100
+    return accuracy.clamp(0.0, 100.0);
   }
+
 
   int _levenshtein(String a, String b) {
     final m = a.length; 
