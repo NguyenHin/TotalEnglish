@@ -37,6 +37,34 @@ class ExerciseItem {
 
     return ExerciseItem(doc: doc, type: type, vocab: vocab);
   }
+// CODE MỚI CHƯA TEST
+//   factory ExerciseItem.fromDoc(
+//   DocumentSnapshot<Map<String, dynamic>> doc,
+//   VocabularyItem vocab,
+// ) {
+//   late final ExerciseType type;
+
+//   switch (doc.id) {
+//     case 'fill_in_blank':
+//       type = ExerciseType.fillInBlank;
+//       break;
+//     case 'multiple_choice':
+//       type = ExerciseType.multipleChoice;
+//       break;
+//     case 'letterTiles':
+//       type = ExerciseType.letterTiles;
+//       break;
+//     default:
+//       throw Exception('Unknown exercise type: ${doc.id}');
+//   }
+
+//   return ExerciseItem(
+//     doc: doc,
+//     type: type,
+//     vocab: vocab,
+//   );
+// }
+
 
   ExerciseItem copyWith({List<ExerciseItem>? optionsItems}) {
     return ExerciseItem(

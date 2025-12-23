@@ -42,7 +42,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   late List<bool> _hasAutoPlayed;
 
-  Map<String, List<String>> _shuffledLetters = {};
+  final Map<String, List<String>> _shuffledLetters = {};
 
   @override
   void initState() {
@@ -54,7 +54,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   void dispose() {
     _pageController.dispose();
     _ttsService.stop();
-    _checkDialogEntry?.remove();
+    _checkDialogEntry?.remove();  
     super.dispose();
   }
 
@@ -124,7 +124,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       // Thứ tự ngẫu nhiên
       exercises.shuffle();
 
-      // ✅ Khởi tạo trạng thái để tránh RangeError
+      // ✅ Khởi tạo trạng thái (sau khi load exercise)
       setState(() {
         _exercises = exercises;
         _isLoading = false;
@@ -154,7 +154,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         textToSpeak = currentExercise.word;
       }
 
-      if (textToSpeak != null && textToSpeak.isNotEmpty) {
+      if (textToSpeak.isNotEmpty) {
         await Future.delayed(const Duration(milliseconds: 700));
       _isPlayingNotifier.value = true;
       await _ttsService.stop(); // dừng TTS cũ trước khi đọc
@@ -193,7 +193,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         correctAnswer: correctAnswer,
         isCorrect: isCorrect,
         onContinue: () async {
-          _checkDialogEntry?.remove();
+          _checkDialogEntry?.remove();  //xoá để chỉ có 1 overlay đc hiển thị
           _checkDialogEntry = null;
 
           _answerStatus[_currentIndex] = isCorrect;
@@ -248,8 +248,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           // 2) Tính progress percent
           final percent = total > 0 ? ((correct / total) * 100) : 0.0;
 
-          // await updateStreak();
-
           // 3) Pop màn hình Exercise và trả kết quả về LessonMenu
           _safePop({
             'completedActivity': 'exercise',
@@ -270,14 +268,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     setState(() {
       _exercises = wrongExercises;
       _currentIndex = 0;
-      _selectedAnswer = null;
-      _checked = false;
+      _selectedAnswer = null; //đặt lại câu trả lời đã chọn -> null
+      _checked = false; //đặt lại trạng thái kt
       _selectedLetterIndices.clear();
       _answerStatus = List.filled(_exercises.length, null);
       _hasAutoPlayed = List.filled(_exercises.length, false);
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {  //code bên trong khi build widget đã xong
       _pageController.jumpToPage(0);
       _autoPlayWord(0);
     });

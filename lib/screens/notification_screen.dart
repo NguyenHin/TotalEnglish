@@ -88,7 +88,7 @@ class NotificationScreen extends StatelessWidget {
                     final notificationType = notificationData['type'] as String?;
                     final message = notificationData['message'] as String?;
                     final createdAt = notificationData['createdAt'] as Timestamp?;
-                    final streakDays = notificationData['streakDays'] as int?;
+                    //final streakDays = notificationData['streakDays'] as int?;
 
                     IconData? icon;
                     Color? iconColor;

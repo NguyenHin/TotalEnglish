@@ -76,11 +76,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
       _vocabularyItems = [];
       for (var doc in docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         final correctAnswer = data['meaning'] ?? '';
 
         final allMeanings = docs
-            .map((d) => (d.data() as Map<String, dynamic>)['meaning']?.toString() ?? '')
+            .map((d) => (d.data())['meaning']?.toString() ?? '')
             .where((m) => m.isNotEmpty && m != correctAnswer)
             .toList()
           ..shuffle();

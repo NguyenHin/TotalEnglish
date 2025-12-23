@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class VocabularyItem {
-  final QueryDocumentSnapshot doc;
+  final QueryDocumentSnapshot doc;  //doc có sẵn dữ liệu
 
   // Danh sách options cho multiple-choice (mặc định rỗng)
   final List<String> options;
