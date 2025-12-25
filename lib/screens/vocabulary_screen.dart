@@ -148,7 +148,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     final overlay = Overlay.of(context);
     _checkDialogEntry?.remove();
     _checkDialogEntry = OverlayEntry(
-      builder: (context) => AnimatedOverlayDialog(
+      builder: (context) => AnimatedOverlayDialog.simple(
         correctAnswer: correctAnswer,
         isCorrect: isCorrect,
         onContinue: () async {

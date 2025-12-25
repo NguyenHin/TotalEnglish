@@ -7,7 +7,7 @@ class ExerciseItem {
   final DocumentSnapshot doc; // document trong subcollection activities
   final ExerciseType type;
   final VocabularyItem vocab; // tham chiếu từ vựng cha
-  List<ExerciseItem>? optionsItems; // chỉ dùng cho multiple-choice
+  final List<ExerciseItem>? optionsItems; // chỉ dùng cho multiple-choice
 
   ExerciseItem({
     required this.doc,
@@ -16,12 +16,14 @@ class ExerciseItem {
     this.optionsItems,
   });
 
-  factory ExerciseItem.fromDoc(DocumentSnapshot doc, VocabularyItem vocab) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
-    final typeStr = data['type'] ?? data['questionType']; // fallback nếu DB cũ
-
+  /// ✅ Xác định ExerciseType bằng doc.id (đúng với DB hiện tại)
+  factory ExerciseItem.fromDoc(
+    DocumentSnapshot doc,
+    VocabularyItem vocab,
+  ) {
     late final ExerciseType type;
-    switch (typeStr) {
+
+    switch (doc.id) {
       case 'fill_in_blank':
         type = ExerciseType.fillInBlank;
         break;
@@ -32,41 +34,20 @@ class ExerciseItem {
         type = ExerciseType.letterTiles;
         break;
       default:
-        throw Exception("Unknown exercise type: $typeStr");
+        throw Exception('Unknown exercise type: ${doc.id}');
     }
 
-    return ExerciseItem(doc: doc, type: type, vocab: vocab);
+    return ExerciseItem(
+      doc: doc,
+      type: type,
+      vocab: vocab,
+    );
   }
-// CODE MỚI CHƯA TEST
-//   factory ExerciseItem.fromDoc(
-//   DocumentSnapshot<Map<String, dynamic>> doc,
-//   VocabularyItem vocab,
-// ) {
-//   late final ExerciseType type;
 
-//   switch (doc.id) {
-//     case 'fill_in_blank':
-//       type = ExerciseType.fillInBlank;
-//       break;
-//     case 'multiple_choice':
-//       type = ExerciseType.multipleChoice;
-//       break;
-//     case 'letterTiles':
-//       type = ExerciseType.letterTiles;
-//       break;
-//     default:
-//       throw Exception('Unknown exercise type: ${doc.id}');
-//   }
-
-//   return ExerciseItem(
-//     doc: doc,
-//     type: type,
-//     vocab: vocab,
-//   );
-// }
-
-
-  ExerciseItem copyWith({List<ExerciseItem>? optionsItems}) {
+  /// ✅ Bắt buộc có vì ExerciseScreen đang dùng
+  ExerciseItem copyWith({
+    List<ExerciseItem>? optionsItems,
+  }) {
     return ExerciseItem(
       doc: doc,
       type: type,
@@ -75,7 +56,7 @@ class ExerciseItem {
     );
   }
 
-  // Getters tiện dụng
+  // ===== Getters tiện dụng =====
   String get word => vocab.word;
   String get meaning => vocab.meaning;
   String get example => vocab.example;

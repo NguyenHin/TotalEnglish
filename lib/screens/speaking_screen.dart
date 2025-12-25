@@ -36,13 +36,14 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   String? _errorMessage;
 
   bool _showOverlayDialog = false;
-  bool _lastAnswerCorrect = false;
+  //bool _lastAnswerCorrect = false;
   String _lastCorrectWord = '';
   Widget? _highlightWidget;
   String? _currentFilePath;
 
   final ValueNotifier<double> _micScaleNotifier = ValueNotifier(1.0);
   bool _isMicBusy = false;
+  OverlayResultType _lastResultType = OverlayResultType.wrong;
 
   
 
@@ -214,7 +215,6 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       correctWord,
       recognizedText,
       accuracy,
-      isCorrect,
     );
   } catch (e, stack) {
     debugPrint('🔥 Mic error: $e\n$stack');
@@ -334,25 +334,38 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   String correctWord,
   String spokenWord,
   double accuracy,
-  bool isCorrect,
 ) async {
-  // 1️⃣ Cập nhật UI ngay
+  // 1️⃣ Quy đổi accuracy → enum
+  final OverlayResultType resultType;
+
+  if (accuracy >= 100) {
+    resultType = OverlayResultType.correct;
+  } else if (accuracy >= 70) {
+    resultType = OverlayResultType.almostCorrect;
+  } else {
+    resultType = OverlayResultType.wrong;
+  }
+
+  // 2️⃣ Update UI
   setState(() {
-    _lastAnswerCorrect = isCorrect;
+    _lastResultType = resultType;
     _lastCorrectWord = correctWord;
     _highlightWidget = _highlightSpelling(correctWord, spokenWord, accuracy);
     _showOverlayDialog = true;
   });
 
-  // 2️⃣ Xử lý logic async bên ngoài setState
-  if (isCorrect) _spokenCorrectly.add(_currentPage);
+  // 3️⃣ Logic bài học
+  if (resultType == OverlayResultType.correct) {
+    _spokenCorrectly.add(_currentPage);
+  }
 
   if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
     _isLessonCompleted = true;
-    await updateStreak(); // ✅ giờ hợp lệ
+    await updateStreak();
     _showFinalScore();
   }
 }
+
 
 
   Widget _highlightSpelling(String correctWord, String spokenWord, double accuracy) {
@@ -591,18 +604,30 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
       // Overlay dialog
       if (_showOverlayDialog)
         AnimatedOverlayDialog(
-          correctAnswer: _lastCorrectWord,
-          isCorrect: _lastAnswerCorrect,
-          onContinue: () {
-            setState(() => _showOverlayDialog = false);
-            if (_lastAnswerCorrect && _currentPage < _vocabularyList.length - 1) {
-              _pageController.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut);
-              //_autoPlayWord(_currentPage + 1);
-            }
-          },
-        ),
+  correctAnswer: _lastCorrectWord,
+  resultType: _lastResultType,
+
+  onRetry: () {
+    setState(() {
+      _showOverlayDialog = false;
+      _highlightWidget = null;
+    });
+    _autoPlayWord(_currentPage);
+  },
+
+  onContinue: () {
+    setState(() => _showOverlayDialog = false);
+
+    if (_lastResultType == OverlayResultType.correct &&
+        _currentPage < _vocabularyList.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  },
+),
+
     ],
   );
 }
