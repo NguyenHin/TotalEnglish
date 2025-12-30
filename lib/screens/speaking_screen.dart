@@ -217,21 +217,6 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
 
-//   // Hiệu ứng rung mic
-//   void _startMicPulse() {
-//   Future.delayed(const Duration(milliseconds: 200), () {
-//     if (!mounted || !_recordService.isRecording) return;
-
-//     _micScaleNotifier.value = 1.2;
-
-//     Future.delayed(const Duration(milliseconds: 200), () {
-//       if (!mounted || !_recordService.isRecording) return;
-
-//       _micScaleNotifier.value = 1.0;
-//       _startMicPulse();
-//     });
-//   });
-// }
 void _startMicPulse() {
   // đảm bảo chỉ có 1 pulse chạy
   _micTimer?.cancel();
