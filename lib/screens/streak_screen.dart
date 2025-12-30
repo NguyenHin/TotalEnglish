@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:intl/intl.dart';
+//import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 class StreakScreen extends StatefulWidget {
@@ -58,7 +58,7 @@ class _StreakScreenState extends State<StreakScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final todayFormatted = DateFormat('EEEE').format(DateTime.now().toLocal()).substring(0, 1).toUpperCase();
+    //final todayFormatted = DateFormat('EEEE').format(DateTime.now().toLocal()).substring(0, 1).toUpperCase();
 
     return Scaffold(
       backgroundColor: Colors.white,

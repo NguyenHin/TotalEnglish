@@ -1,28 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'vocabulary_item.dart';
 
 enum ExerciseType { fillInBlank, multipleChoice, letterTiles }
 
 class ExerciseItem {
-  final DocumentSnapshot doc; // document activity từ Firestore
+  final DocumentSnapshot doc; // document trong subcollection activities
   final ExerciseType type;
-  final List<String>? letters; // chỉ dùng cho LetterTiles
-
-  // Chỉ dùng cho MultipleChoice: mỗi option có word + imageURL
-  List<ExerciseItem>? optionsItems;
+  final VocabularyItem vocab; // tham chiếu từ vựng cha
+  final List<ExerciseItem>? optionsItems; // chỉ dùng cho multiple-choice
 
   ExerciseItem({
     required this.doc,
     required this.type,
-    this.letters,
+    required this.vocab,
     this.optionsItems,
   });
 
-  // Factory từ DocumentSnapshot
-  factory ExerciseItem.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    ExerciseType type;
+  /// ✅ Xác định ExerciseType bằng doc.id (đúng với DB hiện tại)
+  factory ExerciseItem.fromDoc(
+    DocumentSnapshot doc,
+    VocabularyItem vocab,
+  ) {
+    late final ExerciseType type;
 
-    switch (data['questionType']) {
+    switch (doc.id) {
       case 'fill_in_blank':
         type = ExerciseType.fillInBlank;
         break;
@@ -33,31 +34,33 @@ class ExerciseItem {
         type = ExerciseType.letterTiles;
         break;
       default:
-        throw Exception("Unknown questionType: ${data['questionType']}");
+        throw Exception('Unknown exercise type: ${doc.id}');
     }
 
     return ExerciseItem(
       doc: doc,
       type: type,
-      letters: data['letters'] != null ? List<String>.from(data['letters']) : null,
+      vocab: vocab,
     );
   }
 
-  // Copy để set optionsItems
-  ExerciseItem copyWith({List<ExerciseItem>? optionsItems}) {
+  /// ✅ Bắt buộc có vì ExerciseScreen đang dùng
+  ExerciseItem copyWith({
+    List<ExerciseItem>? optionsItems,
+  }) {
     return ExerciseItem(
       doc: doc,
       type: type,
-      letters: letters,
+      vocab: vocab,
       optionsItems: optionsItems ?? this.optionsItems,
     );
   }
 
-  // Getters tiện dụng
-  String get word => (doc.data() as Map<String, dynamic>)['word'] ?? '';
-  String get meaning => (doc.data() as Map<String, dynamic>)['meaning'] ?? '';
-  String get example => (doc.data() as Map<String, dynamic>)['example'] ?? '';
-  String get exampleMeaning => (doc.data() as Map<String, dynamic>)['exampleMeaning'] ?? '';
-  String get imageURL => (doc.data() as Map<String, dynamic>)['imageURL'] ?? '';
-  String get phonetic => (doc.data() as Map<String, dynamic>)['phonetic'] ?? '';
+  // ===== Getters tiện dụng =====
+  String get word => vocab.word;
+  String get meaning => vocab.meaning;
+  String get example => vocab.example;
+  String get exampleMeaning => vocab.exampleMeaning;
+  String get imageURL => vocab.imageURL;
+  String get phonetic => vocab.phonetic;
 }

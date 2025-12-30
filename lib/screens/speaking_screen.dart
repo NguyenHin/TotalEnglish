@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:total_english/services/record_service.dart';
+import 'package:total_english/services/streak_services.dart';
 import 'package:total_english/services/text_to_speech_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:total_english/widgets/exit_dialog.dart';
@@ -23,6 +24,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   final _ttsService = TextToSpeechService();
   final _recordService = RecordService();
   final _pageController = PageController();
+  //muốn rebuild  giao diện (nút Play), không cần gọi setState cho cả màn hình.
   final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier(false);
 
   List<QueryDocumentSnapshot> _vocabularyList = [];
@@ -34,12 +36,16 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   String? _errorMessage;
 
   bool _showOverlayDialog = false;
-  bool _lastAnswerCorrect = false;
+  //bool _lastAnswerCorrect = false;
   String _lastCorrectWord = '';
   Widget? _highlightWidget;
   String? _currentFilePath;
 
-  double _micScale = 1.0;
+  final ValueNotifier<double> _micScaleNotifier = ValueNotifier(1.0);
+  bool _isMicBusy = false;
+  OverlayResultType _lastResultType = OverlayResultType.wrong;
+
+  
 
   @override
   void initState() {
@@ -60,7 +66,11 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
         _isLoading = false;
       });
 
-      if (_vocabularyList.isNotEmpty) _autoPlayWord(0);
+      if (_vocabularyList.isNotEmpty) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _autoPlayWord(0);
+      });
+    }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -70,61 +80,156 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
   Future<void> _autoPlayWord(int index) async {
+    // Kiểm tra nếu đang ghi âm thì không cho phát âm thanh
+  if (_recordService.isRecording || _isMicBusy) return;
     if (index < 0 || index >= _vocabularyList.length) return;
     final data = _vocabularyList[index].data() as Map<String, dynamic>? ?? {};
     final word = data['word'] ?? '';
     if (word.isEmpty) return;
 
     _isPlayingNotifier.value = true;
-    await _ttsService.speak(word);
+    try {
+    // Chờ một chút để icon kịp phóng to lên trước khi âm thanh kết thúc
+    await Future.wait([
+      _ttsService.speak(word),
+      Future.delayed(const Duration(milliseconds: 600)), // Đảm bảo nút phóng to ít nhất 0.6s
+    ]);
+  } finally {
     _isPlayingNotifier.value = false;
+  }
   }
 
   // 🎙️ Ghi âm - Dừng ghi âm - Xử lý kết quả
-  Future<void> _onMicPressed() async {
-  bool isLocked = _spokenCorrectly.contains(_currentPage);
-  if (isLocked) return;
+  // Future<void> _onMicPressed() async {
+  //   bool isLocked = _spokenCorrectly.contains(_currentPage);
+  //   if (isLocked) return;
 
-  if (!_recordService.isRecording) {
-    // Bắt đầu ghi âm
-    _currentFilePath = await _recordService.startRecording();
-    if (_currentFilePath != null) _startMicPulse();
-  } else {
-    // Dừng ghi âm
+  //   if (!_recordService.isRecording) {
+  //     // Bắt đầu ghi âm
+  //     _currentFilePath = await _recordService.startRecording();
+
+  //     if (_currentFilePath == null) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text("Không thể sử dụng micro. Hãy kiểm tra quyền ứng dụng.")),
+  //       );
+  //       return;
+  //     }
+
+      
+  //     if (_currentFilePath != null) _startMicPulse();
+  //   } else {
+  //     // Dừng ghi âm
+  //     _stopMicPulse();
+
+  //     final vocabData = _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
+  //     final correctWord = vocabData['word'] ?? '';
+
+  //     try {
+  //       final result = await _recordService.stopRecordingAndSend(
+  //         filePath: _currentFilePath!,
+  //         serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe', // ✅ URL server Render
+  //         expectedWord: correctWord,
+  //       );
+  //       //lấy dữ liệu kq từ server
+  //       final recognizedText = result['text'] ?? '';
+  //       final accuracy = result['accuracy'] ?? 0.0;
+  //       final isCorrect = result['isCorrect'] ?? false;
+
+  //       await _saveSpeakingHistory(
+  //         lessonId: widget.lessonId,
+  //         expectedWord: correctWord,
+  //         recognizedText: recognizedText,
+  //         accuracy: accuracy,
+  //         isCorrect: isCorrect,
+  //       );
+
+  //       _showResultOverlay(correctWord, recognizedText, accuracy, isCorrect);
+  //     } catch (e) {
+  //       // ⚠️ Handle lỗi mạng hoặc server
+  //       print('🔥 Lỗi khi gửi audio lên server: $e');
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Không thể kết nối server. Vui lòng thử lại.')),
+  //       );
+  //     }
+  //   }
+  // }
+
+  Future<void> _onMicPressed() async {
+  // 🔒 Khóa chống spam
+  if (_isMicBusy) return;
+  _isMicBusy = true;
+
+  try {
+    // 🛑 Dừng ngay lập tức âm thanh TTS nếu đang phát
+    await _ttsService.stop();
+    _isPlayingNotifier.value = false;
+
+    final bool isLocked = _spokenCorrectly.contains(_currentPage);
+    if (isLocked) return;
+
+    // 🎙️ START RECORDING
+    if (!_recordService.isRecording) {
+      _currentFilePath = await _recordService.startRecording();
+
+      if (_currentFilePath == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Không thể sử dụng micro. Hãy kiểm tra quyền ứng dụng."),
+            ),
+          );
+        }
+        return;
+      }
+
+      _startMicPulse();
+      return;
+    }
+
+    // 🛑 STOP RECORDING
     _stopMicPulse();
 
-    final vocabData = _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
+    final vocabData =
+        _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
     final correctWord = vocabData['word'] ?? '';
 
-    try {
-      final result = await _recordService.stopRecordingAndSend(
-        filePath: _currentFilePath!,
-        serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe', // ✅ URL server Render
-        expectedWord: correctWord,
-      );
+    final result = await _recordService.stopRecordingAndSend(
+      filePath: _currentFilePath!,
+      serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe',
+      expectedWord: correctWord,
+    );
 
-      final recognizedText = result['text'] ?? '';
-      final accuracy = result['accuracy'] ?? 0.0;
-      final isCorrect = result['isCorrect'] ?? false;
+    final recognizedText = result['text'] ?? '';
+    final accuracy = (result['accuracy'] ?? 0.0).toDouble();
+    final isCorrect = result['isCorrect'] ?? false;
 
-      await _saveSpeakingHistory(
-        lessonId: widget.lessonId,
-        expectedWord: correctWord,
-        recognizedText: recognizedText,
-        accuracy: accuracy,
-        isCorrect: isCorrect,
-      );
+    await _saveSpeakingHistory(
+      lessonId: widget.lessonId,
+      expectedWord: correctWord,
+      recognizedText: recognizedText,
+      accuracy: accuracy,
+      isCorrect: isCorrect,
+    );
 
-      _showResultOverlay(correctWord, recognizedText, accuracy, isCorrect);
-    } catch (e) {
-      // ⚠️ Handle lỗi mạng hoặc server
-      print('🔥 Lỗi khi gửi audio lên server: $e');
+    await _showResultOverlay(
+      correctWord,
+      recognizedText,
+      accuracy,
+    );
+  } catch (e, stack) {
+    debugPrint('🔥 Mic error: $e\n$stack');
+
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể kết nối server. Vui lòng thử lại.')),
+        const SnackBar(content: Text('Có lỗi xảy ra. Vui lòng thử lại.')),
       );
     }
+  } finally {
+    // 🔓 Mở khóa (rất quan trọng)
+    _isMicBusy = false;
   }
 }
+
 
 
   Future<void> _saveSpeakingHistory({
@@ -152,20 +257,39 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
         'timestamp': Timestamp.now(),
       };
 
-      if (docSnap.exists) {
-        final existing = docSnap.data()!;
-        final prevBest = (existing['bestAccuracy'] ?? 0.0).toDouble();
-        final totalAttempts = (existing['totalAttempts'] ?? 0) + 1;
+      // if (docSnap.exists) {
+      //   final existing = docSnap.data()!;
+      //   final prevBest = (existing['bestAccuracy'] ?? 0.0).toDouble();
+      //   final totalAttempts = (existing['totalAttempts'] ?? 0) + 1;
 
-        await historyRef.update({
-          'lessonId': lessonId,
-          'lastAccuracy': accuracy,
-          'bestAccuracy': accuracy > prevBest ? accuracy : prevBest,
-          'totalAttempts': totalAttempts,
-          'lastSpoken': recognizedText,
-          'attempts': FieldValue.arrayUnion([attemptData]),
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+      //   await historyRef.update({
+      //     'lessonId': lessonId,
+      //     'lastAccuracy': accuracy,
+      //     'bestAccuracy': accuracy > prevBest ? accuracy : prevBest,
+      //     'totalAttempts': totalAttempts,
+      //     'lastSpoken': recognizedText,
+      //     'attempts': FieldValue.arrayUnion([attemptData]), //thêm mới, ko xoá data cũ
+      //     'timestamp': FieldValue.serverTimestamp(),
+      //   });
+      if (docSnap.exists) {
+  final existing = docSnap.data()!;
+  final prevBest = (existing['bestAccuracy'] ?? 0.0).toDouble();
+  final totalAttempts = (existing['totalAttempts'] ?? 0) + 1;
+
+  // ✅ GIỚI HẠN attempts (tối đa 10)
+  final List attempts = List.from(existing['attempts'] ?? []);
+  attempts.add(attemptData);
+  if (attempts.length > 10) attempts.removeAt(0);
+
+  await historyRef.update({
+    'lessonId': lessonId,
+    'lastAccuracy': accuracy,
+    'bestAccuracy': accuracy > prevBest ? accuracy : prevBest,
+    'totalAttempts': totalAttempts,
+    'lastSpoken': recognizedText,
+    'attempts': attempts, // ✅ ghi đè mảng đã giới hạn
+    'timestamp': FieldValue.serverTimestamp(),
+  });
       } else {
         await historyRef.set({
           'lessonId': lessonId,
@@ -184,38 +308,65 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
 
-  // 🌈 Hiệu ứng rung mic
+  // Hiệu ứng rung mic
   void _startMicPulse() {
     Future.delayed(const Duration(milliseconds: 200), () {
-      if (_recordService.isRecording) {
-        setState(() => _micScale = 1.2);
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (_recordService.isRecording) {
-            setState(() => _micScale = 1.0);
-            _startMicPulse();
-          }
-        });
-      }
+      if (!mounted || !_recordService.isRecording) return;
+
+      _micScaleNotifier.value = 1.2;
+
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (!mounted || !_recordService.isRecording) return;
+
+        _micScaleNotifier.value = 1.0;
+        _startMicPulse();
+      });
     });
   }
 
-  void _stopMicPulse() => setState(() => _micScale = 1.0);
-
-  // 📊 Hiển thị kết quả (accuracy + highlight)
-  void _showResultOverlay(String correctWord, String spokenWord, double accuracy, bool isCorrect) {
-    setState(() {
-      _lastAnswerCorrect = isCorrect;
-      _lastCorrectWord = correctWord;
-      _highlightWidget = _highlightSpelling(correctWord, spokenWord, accuracy);
-      _showOverlayDialog = true;
-
-      if (isCorrect) _spokenCorrectly.add(_currentPage);
-      if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
-        _isLessonCompleted = true;
-        _showFinalScore();
-      }
-    });
+  void _stopMicPulse() {
+    _micScaleNotifier.value = 1.0;
   }
+
+
+  // Hiển thị kết quả (accuracy + highlight)
+  Future<void> _showResultOverlay(
+  String correctWord,
+  String spokenWord,
+  double accuracy,
+) async {
+  // 1️⃣ Quy đổi accuracy → enum
+  final OverlayResultType resultType;
+
+  if (accuracy >= 100) {
+    resultType = OverlayResultType.correct;
+  } else if (accuracy >= 70) {
+    resultType = OverlayResultType.almostCorrect;
+  } else {
+    resultType = OverlayResultType.wrong;
+  }
+
+  // 2️⃣ Update UI
+  setState(() {
+    _lastResultType = resultType;
+    _lastCorrectWord = correctWord;
+    _highlightWidget = _highlightSpelling(correctWord, spokenWord, accuracy);
+    _showOverlayDialog = true;
+  });
+
+  // 3️⃣ Logic bài học
+  if (resultType == OverlayResultType.correct) {
+    _spokenCorrectly.add(_currentPage);
+  }
+
+  if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
+    _isLessonCompleted = true;
+    await updateStreak();
+    _showFinalScore();
+  }
+}
+
+
 
   Widget _highlightSpelling(String correctWord, String spokenWord, double accuracy) {
     List<TextSpan> spans = [];
@@ -233,6 +384,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
     }
     return Column(
       children: [
+        //richtext: hiển thị cùng dòng
         RichText(text: TextSpan(children: spans, style: const TextStyle(fontWeight: FontWeight.bold))),
         const SizedBox(height: 8),
         Text("🎯 Accuracy: ${accuracy.toStringAsFixed(1)}%",
@@ -242,32 +394,48 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
   Widget _buildSpeakButton() {
-    bool isLocked = _spokenCorrectly.contains(_currentPage);
+  final bool isLocked = _spokenCorrectly.contains(_currentPage);
+
   return GestureDetector(
     onTap: _onMicPressed,
-    child: AnimatedScale(
-      scale: _micScale,
-      duration: const Duration(milliseconds: 200),
-      child: Container(
-        width: 65,
-        height: 65,
-        decoration: BoxDecoration(
-          color: isLocked
-              ? Colors.grey
-              : (_recordService.isRecording ? Colors.red : const Color(0xFF89B3D4)),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 3))
-          ],
-        ),
-        child: const Icon(FontAwesomeIcons.microphone, size: 28, color: Colors.white),
-      ),
+    child: ValueListenableBuilder<double>(
+      valueListenable: _micScaleNotifier,
+      builder: (context, scale, _) {
+        return AnimatedScale(
+          scale: scale,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            width: 65,
+            height: 65,
+            decoration: BoxDecoration(
+              color: isLocked
+                  ? Colors.grey
+                  : (_recordService.isRecording
+                      ? Colors.red
+                      : const Color(0xFF89B3D4)),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                )
+              ],
+            ),
+            child: const Icon(
+              FontAwesomeIcons.microphone,
+              size: 28,
+              color: Colors.white,
+            ),
+          ),
+        );
+      },
     ),
   );
-       
 }
 
-  // 🧠 Kết thúc bài học
+
+  // Kết thúc bài học
   void _showFinalScore() {
     final total = _vocabularyList.length;
     final correct = _spokenCorrectly.length;
@@ -284,9 +452,10 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
           Navigator.pop(context);
           _restartWrongQuestions(wrong);
         },
-        onComplete: () {
-          Navigator.pop(context);
-          Navigator.pop(context, {
+        onComplete: () async{
+          Navigator.pop(context); // đóng dialog
+          //await updateStreak();
+          _safePop({
             'completedActivity': 'speaking',
             'correctCount': correct,
             'totalCount': total,
@@ -401,9 +570,21 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                PlayButton(
-                                  onPressed: () async => await _autoPlayWord(i),
-                                  isPlayingNotifier: _isPlayingNotifier,
+                                ValueListenableBuilder<double>(
+                                  valueListenable: _micScaleNotifier, 
+                                  builder: (context, scale, _) {
+                                    final bool isRecording = _recordService.isRecording;
+                                    return AbsorbPointer(
+                                      absorbing: isRecording, 
+                                      child: Opacity(
+                                        opacity: isRecording ? 0.5 : 1.0, 
+                                        child: PlayButton(
+                                          onPressed: () async => await _autoPlayWord(i),
+                                          isPlayingNotifier: _isPlayingNotifier,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(width: 30),
                                 _buildSpeakButton(),
@@ -420,21 +601,33 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
           ),
         ),
       ),
-      // 🌟 Overlay dialog
+      // Overlay dialog
       if (_showOverlayDialog)
         AnimatedOverlayDialog(
-          correctAnswer: _lastCorrectWord,
-          isCorrect: _lastAnswerCorrect,
-          onContinue: () {
-            setState(() => _showOverlayDialog = false);
-            if (_lastAnswerCorrect && _currentPage < _vocabularyList.length - 1) {
-              _pageController.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut);
-              _autoPlayWord(_currentPage + 1);
-            }
-          },
-        ),
+  correctAnswer: _lastCorrectWord,
+  resultType: _lastResultType,
+
+  onRetry: () {
+    setState(() {
+      _showOverlayDialog = false;
+      _highlightWidget = null;
+    });
+    _autoPlayWord(_currentPage);
+  },
+
+  onContinue: () {
+    setState(() => _showOverlayDialog = false);
+
+    if (_lastResultType == OverlayResultType.correct &&
+        _currentPage < _vocabularyList.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  },
+),
+
     ],
   );
 }
@@ -465,9 +658,16 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   @override
   void dispose() {
+    _micScaleNotifier.dispose();
+    _isPlayingNotifier.dispose();
     _ttsService.stop();
     _pageController.dispose();
     super.dispose();
   }
+  
+  void _safePop([Object? result]) {
+    Navigator.pop(context, result);
+  }
+
 }
 

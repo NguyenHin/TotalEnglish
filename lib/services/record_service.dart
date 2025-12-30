@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +9,7 @@ class RecordService {
   final Record _record = Record();
   bool isRecording = false;
   bool isUploading = false;
+  
 
   /// 🗂️ Tạo đường dẫn file .wav mới
   Future<String> _getNewFilePath() async {
@@ -18,15 +20,16 @@ class RecordService {
 
   /// 🎙️ Bắt đầu ghi âm
   Future<String?> startRecording() async {
-    if (isRecording || isUploading) return null;
+    if (isRecording || isUploading) return null;  //kt có đang ghi âm or tải file?
 
     if (await _record.hasPermission()) {
       final path = await _getNewFilePath();
       await _record.start(
         path: path,
         encoder: AudioEncoder.wav,
-        bitRate: 128000,
+        bitRate: 32000,
         samplingRate: 16000, // ✅ Vosk yêu cầu 16kHz
+        numChannels: 1,
       );
       isRecording = true;
       return path;
@@ -38,7 +41,7 @@ class RecordService {
   Future<Map<String, dynamic>> stopRecordingAndSend({
     required String filePath,
     required String serverUrl,
-    String? expectedWord, // ✅ từ đúng để so sánh accuracy
+    String? expectedWord, // từ đúng để so sánh accuracy
   }) async {
     if (!isRecording) return {'text': '', 'accuracy': 0.0, 'isCorrect': false};
 
@@ -46,6 +49,7 @@ class RecordService {
     isRecording = false;
     isUploading = true;
 
+    //dữ liệu gửi lên server
     String recognizedText = '';
     double accuracy = 0.0;
     bool isCorrect = false;
@@ -53,7 +57,15 @@ class RecordService {
 
     try {
       final uri = Uri.parse(serverUrl);
+      //hhtp.post chỉ gửi dữ liệu dạng text
+      //cần gửi cả file âm thanh (.wav) lên server, nên phải dùng MultipartRequest,
       final request = http.MultipartRequest('POST', uri);
+
+      // Thêm dòng này để gửi từ mục tiêu sang Node.js
+      if (expectedWord != null) {
+        request.fields['expectedWord'] = expectedWord;
+      }
+
       request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
 
       final streamedResponse = await request.send();
@@ -65,13 +77,19 @@ class RecordService {
 
         if (expectedWord != null && expectedWord.isNotEmpty) {
           accuracy = _calculateAccuracy(recognizedText, expectedWord);
-          isCorrect = accuracy >= 90.0;
+          isCorrect = accuracy >= 70.0;
         }
       }
     } catch (e) {
       print("❌ RecordService error: $e");
     } finally {
-      if (await audioFile.exists()) await audioFile.delete();
+      //if (await audioFile.exists()) await audioFile.delete();
+      Future.delayed(const Duration(seconds: 1), () async {
+  if (await audioFile.exists()) {
+    await audioFile.delete();
+  }
+});
+
       isUploading = false;
     }
 
@@ -82,20 +100,23 @@ class RecordService {
     };
   }
 
-  /// 📊 Hàm tính độ chính xác giữa 2 chuỗi (Levenshtein ratio)
+  /// 📊 Hàm tính độ chính xác giữa 2 chuỗi (Levenshtein)
   double _calculateAccuracy(String spoken, String expected) {
     if (spoken.isEmpty || expected.isEmpty) return 0.0;
+
     spoken = spoken.toLowerCase().trim();
     expected = expected.toLowerCase().trim();
 
     final distance = _levenshtein(spoken, expected);
-    final maxLen = expected.length;
+    final maxLen = math.max(spoken.length, expected.length);
+
     final accuracy = ((maxLen - distance) / maxLen) * 100;
     return accuracy.clamp(0.0, 100.0);
   }
 
+
   int _levenshtein(String a, String b) {
-    final m = a.length;
+    final m = a.length; 
     final n = b.length;
     List<List<int>> dp = List.generate(m + 1, (_) => List.filled(n + 1, 0));
 
