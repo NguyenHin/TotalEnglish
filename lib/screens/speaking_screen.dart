@@ -36,16 +36,18 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   String? _errorMessage;
 
   bool _showOverlayDialog = false;
-  //bool _lastAnswerCorrect = false;
+
   String _lastCorrectWord = '';
   Widget? _highlightWidget;
+
   String? _currentFilePath;
 
   final ValueNotifier<double> _micScaleNotifier = ValueNotifier(1.0);
-  bool _isMicBusy = false;
+
   OverlayResultType _lastResultType = OverlayResultType.wrong;
 
-  
+  Timer? _micTimer;
+
 
   @override
   void initState() {
@@ -81,7 +83,8 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   Future<void> _autoPlayWord(int index) async {
     // Kiểm tra nếu đang ghi âm thì không cho phát âm thanh
-  if (_recordService.isRecording || _isMicBusy) return;
+  if (_recordService.isRecording) return;
+
     if (index < 0 || index >= _vocabularyList.length) return;
     final data = _vocabularyList[index].data() as Map<String, dynamic>? ?? {};
     final word = data['word'] ?? '';
@@ -99,136 +102,56 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
   }
 
-  // 🎙️ Ghi âm - Dừng ghi âm - Xử lý kết quả
-  // Future<void> _onMicPressed() async {
-  //   bool isLocked = _spokenCorrectly.contains(_currentPage);
-  //   if (isLocked) return;
-
-  //   if (!_recordService.isRecording) {
-  //     // Bắt đầu ghi âm
-  //     _currentFilePath = await _recordService.startRecording();
-
-  //     if (_currentFilePath == null) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text("Không thể sử dụng micro. Hãy kiểm tra quyền ứng dụng.")),
-  //       );
-  //       return;
-  //     }
-
-      
-  //     if (_currentFilePath != null) _startMicPulse();
-  //   } else {
-  //     // Dừng ghi âm
-  //     _stopMicPulse();
-
-  //     final vocabData = _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
-  //     final correctWord = vocabData['word'] ?? '';
-
-  //     try {
-  //       final result = await _recordService.stopRecordingAndSend(
-  //         filePath: _currentFilePath!,
-  //         serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe', // ✅ URL server Render
-  //         expectedWord: correctWord,
-  //       );
-  //       //lấy dữ liệu kq từ server
-  //       final recognizedText = result['text'] ?? '';
-  //       final accuracy = result['accuracy'] ?? 0.0;
-  //       final isCorrect = result['isCorrect'] ?? false;
-
-  //       await _saveSpeakingHistory(
-  //         lessonId: widget.lessonId,
-  //         expectedWord: correctWord,
-  //         recognizedText: recognizedText,
-  //         accuracy: accuracy,
-  //         isCorrect: isCorrect,
-  //       );
-
-  //       _showResultOverlay(correctWord, recognizedText, accuracy, isCorrect);
-  //     } catch (e) {
-  //       // ⚠️ Handle lỗi mạng hoặc server
-  //       print('🔥 Lỗi khi gửi audio lên server: $e');
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Không thể kết nối server. Vui lòng thử lại.')),
-  //       );
-  //     }
-  //   }
-  // }
-
   Future<void> _onMicPressed() async {
-  // 🔒 Khóa chống spam
-  if (_isMicBusy) return;
-  _isMicBusy = true;
+  if (_recordService.isRecording && _currentFilePath == null) return;
 
   try {
-    // 🛑 Dừng ngay lập tức âm thanh TTS nếu đang phát
     await _ttsService.stop();
     _isPlayingNotifier.value = false;
 
-    final bool isLocked = _spokenCorrectly.contains(_currentPage);
+    final isLocked = _spokenCorrectly.contains(_currentPage);
     if (isLocked) return;
 
-    // 🎙️ START RECORDING
     if (!_recordService.isRecording) {
+      // ▶ START
       _currentFilePath = await _recordService.startRecording();
-
-      if (_currentFilePath == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Không thể sử dụng micro. Hãy kiểm tra quyền ứng dụng."),
-            ),
-          );
-        }
-        return;
-      }
-
       _startMicPulse();
-      return;
-    }
+    } else {
+      // ⏹ STOP
+      _stopMicPulse();
 
-    // 🛑 STOP RECORDING
-    _stopMicPulse();
+      final vocabData =
+          _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
+      final correctWord = vocabData['word'] ?? '';
 
-    final vocabData =
-        _vocabularyList[_currentPage].data() as Map<String, dynamic>? ?? {};
-    final correctWord = vocabData['word'] ?? '';
+      final result = await _recordService.stopRecordingAndSend(
+        filePath: _currentFilePath!,
+        serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe',
+        expectedWord: correctWord,
+      );
 
-    final result = await _recordService.stopRecordingAndSend(
-      filePath: _currentFilePath!,
-      serverUrl: 'https://vosk-server-xbue.onrender.com/transcribe',
-      expectedWord: correctWord,
-    );
+      _currentFilePath = null;
 
-    final recognizedText = result['text'] ?? '';
-    final accuracy = (result['accuracy'] ?? 0.0).toDouble();
-    final isCorrect = result['isCorrect'] ?? false;
+      await _saveSpeakingHistory(
+        lessonId: widget.lessonId,
+        expectedWord: correctWord,
+        recognizedText: result['text'] ?? '',
+        accuracy: (result['accuracy'] ?? 0.0).toDouble(),
+        isCorrect: result['isCorrect'] ?? false,
+      );
 
-    await _saveSpeakingHistory(
-      lessonId: widget.lessonId,
-      expectedWord: correctWord,
-      recognizedText: recognizedText,
-      accuracy: accuracy,
-      isCorrect: isCorrect,
-    );
-
-    await _showResultOverlay(
-      correctWord,
-      recognizedText,
-      accuracy,
-    );
-  } catch (e, stack) {
-    debugPrint('🔥 Mic error: $e\n$stack');
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Có lỗi xảy ra. Vui lòng thử lại.')),
+      await _showResultOverlay(
+        correctWord,
+        result['text'] ?? '',
+        (result['accuracy'] ?? 0.0).toDouble(),
       );
     }
-  } finally {
-    // 🔓 Mở khóa (rất quan trọng)
-    _isMicBusy = false;
+  } catch (e) {
+    debugPrint('🔥 Mic error: $e');
+    _stopMicPulse();
   }
 }
+
 
 
 
@@ -257,20 +180,6 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
         'timestamp': Timestamp.now(),
       };
 
-      // if (docSnap.exists) {
-      //   final existing = docSnap.data()!;
-      //   final prevBest = (existing['bestAccuracy'] ?? 0.0).toDouble();
-      //   final totalAttempts = (existing['totalAttempts'] ?? 0) + 1;
-
-      //   await historyRef.update({
-      //     'lessonId': lessonId,
-      //     'lastAccuracy': accuracy,
-      //     'bestAccuracy': accuracy > prevBest ? accuracy : prevBest,
-      //     'totalAttempts': totalAttempts,
-      //     'lastSpoken': recognizedText,
-      //     'attempts': FieldValue.arrayUnion([attemptData]), //thêm mới, ko xoá data cũ
-      //     'timestamp': FieldValue.serverTimestamp(),
-      //   });
       if (docSnap.exists) {
   final existing = docSnap.data()!;
   final prevBest = (existing['bestAccuracy'] ?? 0.0).toDouble();
@@ -308,25 +217,47 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
 
-  // Hiệu ứng rung mic
-  void _startMicPulse() {
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (!mounted || !_recordService.isRecording) return;
+//   // Hiệu ứng rung mic
+//   void _startMicPulse() {
+//   Future.delayed(const Duration(milliseconds: 200), () {
+//     if (!mounted || !_recordService.isRecording) return;
 
-      _micScaleNotifier.value = 1.2;
+//     _micScaleNotifier.value = 1.2;
 
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (!mounted || !_recordService.isRecording) return;
+//     Future.delayed(const Duration(milliseconds: 200), () {
+//       if (!mounted || !_recordService.isRecording) return;
 
+//       _micScaleNotifier.value = 1.0;
+//       _startMicPulse();
+//     });
+//   });
+// }
+void _startMicPulse() {
+  // đảm bảo chỉ có 1 pulse chạy
+  _micTimer?.cancel();
+
+  _micTimer = Timer.periodic(
+    const Duration(milliseconds: 350),
+    (timer) {
+      if (!mounted || !_recordService.isRecording) {
+        timer.cancel();
         _micScaleNotifier.value = 1.0;
-        _startMicPulse();
-      });
-    });
-  }
+        return;
+      }
+
+      _micScaleNotifier.value =
+          _micScaleNotifier.value == 1.0 ? 1.2 : 1.0;
+    },
+  );
+}
+
 
   void _stopMicPulse() {
-    _micScaleNotifier.value = 1.0;
-  }
+  _micTimer?.cancel();
+  _micTimer = null;
+  _micScaleNotifier.value = 1.0;
+}
+
 
 
   // Hiển thị kết quả (accuracy + highlight)
@@ -356,8 +287,8 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   // 3️⃣ Logic bài học
   if (resultType == OverlayResultType.correct) {
-    _spokenCorrectly.add(_currentPage);
-  }
+  _spokenCorrectly.add(_currentPage);
+}
 
   if (_spokenCorrectly.length == _vocabularyList.length && !_isLessonCompleted) {
     _isLessonCompleted = true;
@@ -409,10 +340,10 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
             height: 65,
             decoration: BoxDecoration(
               color: isLocked
-                  ? Colors.grey
-                  : (_recordService.isRecording
-                      ? Colors.red
-                      : const Color(0xFF89B3D4)),
+                ? Colors.grey
+                : (_recordService.isRecording ? Colors.red : const Color(0xFF89B3D4)),
+
+
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -574,6 +505,8 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                                   valueListenable: _micScaleNotifier, 
                                   builder: (context, scale, _) {
                                     final bool isRecording = _recordService.isRecording;
+
+
                                     return AbsorbPointer(
                                       absorbing: isRecording, 
                                       child: Opacity(
@@ -616,16 +549,17 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   },
 
   onContinue: () {
-    setState(() => _showOverlayDialog = false);
+  setState(() => _showOverlayDialog = false);
 
-    if (_lastResultType == OverlayResultType.correct &&
-        _currentPage < _vocabularyList.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  },
+  if (_lastResultType != OverlayResultType.wrong &&
+      _currentPage < _vocabularyList.length - 1) {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+},
+
 ),
 
     ],
@@ -658,6 +592,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   @override
   void dispose() {
+    _micTimer?.cancel();
     _micScaleNotifier.dispose();
     _isPlayingNotifier.dispose();
     _ttsService.stop();

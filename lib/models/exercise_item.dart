@@ -16,7 +16,7 @@ class ExerciseItem {
     this.optionsItems,
   });
 
-  /// ✅ Xác định ExerciseType bằng doc.id (đúng với DB hiện tại)
+  /// ✅ Xác định ExerciseType bằng doc.id
   factory ExerciseItem.fromDoc(
     DocumentSnapshot doc,
     VocabularyItem vocab,
@@ -44,7 +44,7 @@ class ExerciseItem {
     );
   }
 
-  /// ✅ Bắt buộc có vì ExerciseScreen đang dùng
+  
   ExerciseItem copyWith({
     List<ExerciseItem>? optionsItems,
   }) {

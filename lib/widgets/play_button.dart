@@ -25,13 +25,15 @@ class PlayButton extends StatefulWidget {
 class _PlayButtonState extends State<PlayButton> {
   bool _isPressed = false;
 
-  bool get _isDisabled => widget.onPressed == null;
-
   @override
 Widget build(BuildContext context) {
   return ValueListenableBuilder<bool>(
     valueListenable: widget.isPlayingNotifier,
     builder: (context, isPlaying, _) {
+      if (!isPlaying && _isPressed) {
+    _isPressed = false; // 🔑 ép reset
+  }
+      
       // Nút sẽ phóng to nếu đang phát (auto hoặc click)
       final bool shouldScale = isPlaying || _isPressed;
       final bool canInteract = widget.onPressed != null;
