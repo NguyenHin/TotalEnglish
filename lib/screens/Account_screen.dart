@@ -136,7 +136,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
+                backgroundColor: Color(0xFF89B3D4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -155,11 +155,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = const Color(0xFFF1F9FF);
+    //final backgroundColor = const Color(0xFFF1F9FF);
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFBBDEFB),
+        backgroundColor: const Color(0xFF89B3D4),
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -317,7 +317,7 @@ class _AccountScreenState extends State<AccountScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF64B5F6),
+                  backgroundColor: const Color.fromARGB(255, 179, 216, 244),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),

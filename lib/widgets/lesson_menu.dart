@@ -21,10 +21,10 @@ class LessonMenu extends StatefulWidget {
 }
 
 class _LessonMenuState extends State<LessonMenu> {
-  double _vocabProgress = 0.0;
-  double _exerciseProgress = 0.0;
-  double _speakingProgress = 0.0;
-  double _quizProgress = 0.0;
+  double _vocabProgress = 0;
+  double _exerciseProgress = 0;
+  double _speakingProgress = 0;
+  double _quizProgress = 0;
 
   @override
   void initState() {
@@ -32,26 +32,32 @@ class _LessonMenuState extends State<LessonMenu> {
     _loadProgressFromFirebase();
   }
 
-  // 🟩 Lưu tiến độ lên Firebase
-  Future<void> _updateProgressOnFirebase(String activity, double percent) async {
+  // ================================
+  /// 🔼 UPDATE PROGRESS + SAVE FIREBASE
+  // ================================
+  Future<void> _updateProgressOnFirebase(
+      String activity, double percent) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // Cập nhật giá trị trong state
       setState(() {
         switch (activity) {
           case 'vocabulary':
-            _vocabProgress = percent;
+            _vocabProgress =
+                percent > _vocabProgress ? percent : _vocabProgress;
             break;
           case 'exercise':
-            _exerciseProgress = percent;
+            _exerciseProgress =
+                percent > _exerciseProgress ? percent : _exerciseProgress;
             break;
           case 'speaking':
-            _speakingProgress = percent;
+            _speakingProgress =
+                percent > _speakingProgress ? percent : _speakingProgress;
             break;
           case 'quiz':
-            _quizProgress = percent;
+            _quizProgress =
+                percent > _quizProgress ? percent : _quizProgress;
             break;
         }
       });
@@ -60,24 +66,28 @@ class _LessonMenuState extends State<LessonMenu> {
           .collection('user_lesson_progress')
           .doc('${user.uid}_${widget.lessonId}');
 
-      await docRef.set({
-        'userId': user.uid,
-        'lessonId': widget.lessonId,
-        'vocabularyProgress': _vocabProgress,
-        'exerciseProgress': _exerciseProgress,
-        'speakingProgress': _speakingProgress,
-        'quizProgress': _quizProgress,
-        'lastUpdatedAt': FieldValue.serverTimestamp(),
-      });
+      await docRef.set(
+        {
+          'userId': user.uid,
+          'lessonId': widget.lessonId,
+          'vocabularyProgress': _vocabProgress,
+          'exerciseProgress': _exerciseProgress,
+          'speakingProgress': _speakingProgress,
+          'quizProgress': _quizProgress,
+          'lastUpdatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
 
-      debugPrint("✅ Progress đã cập nhật đầy đủ lên Firebase");
+      debugPrint("✅ Saved progress: $activity = $percent%");
     } catch (e) {
-      debugPrint("❌ Lỗi lưu progress lên Firebase: $e");
+      debugPrint("❌ Firebase save error: $e");
     }
   }
 
-
-  // 🟨 Tải tiến độ từ Firebase
+  // ================================
+  /// 🔽 LOAD PROGRESS FROM FIREBASE
+  // ================================
   Future<void> _loadProgressFromFirebase() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -88,23 +98,25 @@ class _LessonMenuState extends State<LessonMenu> {
           .doc('${user.uid}_${widget.lessonId}')
           .get();
 
-      if (doc.exists) {
-        final data = doc.data()!;
-        setState(() {
-          _vocabProgress = (data['vocabularyProgress'] ?? 0).toDouble();
-          _exerciseProgress = (data['exerciseProgress'] ?? 0).toDouble();
-          _speakingProgress = (data['speakingProgress'] ?? 0).toDouble();
-          _quizProgress = (data['quizProgress'] ?? 0).toDouble();
-        });
+      if (!doc.exists) return;
 
-        debugPrint("✅ Load progress: vocab=$_vocabProgress, exercise=$_exerciseProgress, speaking=$_speakingProgress, quiz=$_quizProgress");
-      }
+      final data = doc.data()!;
+      setState(() {
+        _vocabProgress = (data['vocabularyProgress'] ?? 0).toDouble();
+        _exerciseProgress = (data['exerciseProgress'] ?? 0).toDouble();
+        _speakingProgress = (data['speakingProgress'] ?? 0).toDouble();
+        _quizProgress = (data['quizProgress'] ?? 0).toDouble();
+      });
+
+      debugPrint("✅ Progress loaded for lesson ${widget.lessonId}");
     } catch (e) {
-      debugPrint("❌ Lỗi load progress: $e");
+      debugPrint("❌ Firebase load error: $e");
     }
   }
 
-  // 🟦 Xây dựng giao diện
+  // ================================
+  // 🟦 UI
+  // ================================
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -112,191 +124,148 @@ class _LessonMenuState extends State<LessonMenu> {
       children: [
         _buildMenuButton(
           context,
-          "Từ vựng",
-          Icons.library_books,
-          const Color(0xFFF2D16C),
-          VocabularyScreen(lessonId: widget.lessonId),
+          title: "Từ vựng",
+          icon: Icons.library_books,
+          color: const Color(0xFFF2D16C),
+          progress: _vocabProgress,
+          screen: VocabularyScreen(lessonId: widget.lessonId),
+          activityKey: 'vocabulary',
         ),
         _buildMenuButton(
           context,
-          "Luyện nói",
-          Icons.mic,
-          const Color(0xFF95E499),
-          SpeakingScreen(lessonId: widget.lessonId),
+          title: "Luyện nói",
+          icon: Icons.mic,
+          color: const Color(0xFF95E499),
+          progress: _speakingProgress,
+          screen: SpeakingScreen(lessonId: widget.lessonId),
+          activityKey: 'speaking',
         ),
         _buildMenuButton(
           context,
-          "Bài tập",
-          Icons.fitness_center,
-          const Color(0xFFFFA500),
-          ExerciseScreen(lessonId: widget.lessonId),
+          title: "Bài tập",
+          icon: Icons.fitness_center,
+          color: const Color(0xFFFFA500),
+          progress: _exerciseProgress,
+          screen: ExerciseScreen(lessonId: widget.lessonId),
+          activityKey: 'exercise',
         ),
         _buildMenuButton(
           context,
-          "Mini Game",
-          Icons.videogame_asset,
-          const Color(0xFF89B3D4),
-          QuizScreen(lessonId: widget.lessonId),
+          title: "Mini Game",
+          icon: Icons.videogame_asset,
+          color: const Color(0xFF89B3D4),
+          progress: _quizProgress,
+          screen: QuizScreen(lessonId: widget.lessonId),
+          activityKey: 'quiz',
         ),
       ],
     );
   }
 
-  // 🟩 Hàm tạo từng button với progress bar
+  // ================================
+  // 🟩 MENU BUTTON
+  // ================================
   Widget _buildMenuButton(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color backgroundColor,
-    Widget targetScreen,
-  ) {
-    double progress = 0;
-    String activityKey = '';
-
-    switch (title) {
-      case "Từ vựng":
-        progress = _vocabProgress;
-        activityKey = 'vocabulary';
-        break;
-      case "Bài tập":
-        progress = _exerciseProgress;
-        activityKey = 'exercise';
-        break;
-      case "Luyện nói":
-        progress = _speakingProgress;
-        activityKey = 'speaking';
-        break;
-      case "Mini Game":
-        progress = _quizProgress;
-        activityKey = 'quiz';
-        break;
-    }
-
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color color,
+    required double progress,
+    required Widget screen,
+    required String activityKey,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 13.0),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12.0),
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => targetScreen),
-            );
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => screen),
+          );
 
-            if (result is Map<String, dynamic> &&
-                result.containsKey('completedActivity')) {
-              final activity = result['completedActivity'];
-              final correct = (result['correctCount'] ?? 0) as int;
-              final total = (result['totalCount'] ?? 1) as int;
-              final percent = ((correct / total) * 100).roundToDouble();
+          if (result is Map<String, dynamic>) {
+            final correct = result['correctCount'] ?? 0;
+            final total = result['totalCount'] ?? 1;
+            final percent = ((correct / total) * 100).roundToDouble();
 
-              setState(() {
-                switch (activity) {
-                  case 'vocabulary':
-                    _vocabProgress = percent > _vocabProgress ? percent : _vocabProgress;
-                    break;
-                  case 'exercise':
-                    _exerciseProgress = percent > _exerciseProgress ? percent : _exerciseProgress;
-                    break;
-                  case 'speaking':
-                    _speakingProgress = percent > _speakingProgress ? percent : _speakingProgress;
-                    break;
-                  case 'quiz':
-                    _quizProgress = percent > _quizProgress ? percent : _quizProgress;
-                    break;
-                }
-              });
-
-              await _updateProgressOnFirebase(activity, percent);
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              color: Colors.white,
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: backgroundColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 20),
+            await _updateProgressOnFirebase(activityKey, percent);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
+                child: Icon(icon, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                      if (progress > 0) ...[
-                        const SizedBox(height: 8),
-                        _buildProgressBar(context, backgroundColor, progress),
-                        const SizedBox(height: 6),
-                        Text(
-                          "${progress.toStringAsFixed(0)}%",
+                            fontSize: 16, fontWeight: FontWeight.w600)),
+                    if (progress > 0) ...[
+                      const SizedBox(height: 8),
+                      _buildProgressBar(color, progress),
+                      const SizedBox(height: 6),
+                      Text("${progress.toStringAsFixed(0)}%",
                           style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: backgroundColor,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                              fontWeight: FontWeight.bold, color: color)),
+                    ]
+                  ],
                 ),
-              ],
-            ),
+              )
+            ],
           ),
         ),
       ),
     );
   }
 
-  // 🟦 Thanh progress động
-  Widget _buildProgressBar(BuildContext context, Color color, double progress) {
+  // ================================
+  // 🟦 PROGRESS BAR
+  // ================================
+  Widget _buildProgressBar(Color color, double progress) {
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: progress / 100),
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, _) {
-        return Container(
-          height: 10,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: value,
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(8),
-              ),
+      tween: Tween(begin: 0, end: progress / 100),
+      duration: const Duration(milliseconds: 600),
+      builder: (_, value, __) => Container(
+        height: 10,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: value,
+          child: Container(
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

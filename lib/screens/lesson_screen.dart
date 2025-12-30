@@ -37,7 +37,7 @@ class _LessonScreenState extends State<LessonScreen> {
         .map((snapshot) {
       final progressMap = <String, Map<String, double>>{};
       for (final doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         progressMap[data['lessonId']] = {
           'vocabulary': (data['vocabularyProgress'] as num?)?.toDouble() ?? 0,
           'exercise': (data['exerciseProgress'] as num?)?.toDouble() ?? 0,

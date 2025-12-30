@@ -7,7 +7,6 @@ import 'package:total_english/screens/signup_screen.dart';
 import 'package:total_english/services/auth_services.dart';
 import 'package:total_english/widgets/custom_button.dart';
 import 'package:total_english/widgets/custom_textfield.dart';
-import 'package:total_english/widgets/language_switcher.dart';
 import 'package:total_english/widgets/sociallogin_button.dart';
 
 
